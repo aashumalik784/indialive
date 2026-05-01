@@ -35,6 +35,10 @@ export default function Upload() {
 
   const handleUpload = () => {
     if (!file) return;
+    if (!caption.trim()) {
+      toast({ title: "Caption required", description: "Please add a caption before posting.", variant: "destructive" });
+      return;
+    }
 
     setIsUploading(true);
     setProgress(0);
@@ -61,14 +65,26 @@ export default function Upload() {
         toast({ title: "Video uploaded successfully!" });
         setLocation(`/profile/${currentUser.username}`);
       } else {
-        toast({ title: "Upload failed", description: "Please try again later.", variant: "destructive" });
+        let errorMsg = `Server error (${xhr.status})`;
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data.error) errorMsg = data.error;
+        } catch (_) {}
+        toast({ title: "Upload failed", description: errorMsg, variant: "destructive" });
       }
     };
 
     xhr.onerror = () => {
       setIsUploading(false);
-      toast({ title: "Upload failed", description: "Network error occurred.", variant: "destructive" });
+      toast({ title: "Upload failed", description: "Network error — check your connection.", variant: "destructive" });
     };
+
+    xhr.ontimeout = () => {
+      setIsUploading(false);
+      toast({ title: "Upload timed out", description: "The video is too large or connection is slow.", variant: "destructive" });
+    };
+
+    xhr.timeout = 600000;
 
     xhr.send(formData);
   };
@@ -99,7 +115,7 @@ export default function Upload() {
           >
             <UploadCloud className="w-12 h-12 text-zinc-500 mb-4" />
             <p className="text-zinc-400 font-medium">Tap to select video</p>
-            <p className="text-zinc-600 text-sm mt-2">MP4, WebM up to 100MB</p>
+            <p className="text-zinc-600 text-sm mt-2">MP4, MOV, WebM up to 500MB</p>
           </div>
         ) : (
           <div className="relative w-full aspect-[9/16] max-h-[60vh] bg-zinc-900 rounded-2xl overflow-hidden">

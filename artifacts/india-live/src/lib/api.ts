@@ -6,7 +6,7 @@ export async function apiRequest(path: string, options?: RequestInit) {
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "API request failed");
+    throw new Error(errorData.error || errorData.message || `Request failed (${response.status})`);
   }
   return response;
 }

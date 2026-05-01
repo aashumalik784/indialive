@@ -27,6 +27,19 @@ def create_app():
     def healthz():
         return jsonify({"status": "ok"}), 200
 
+    @app.route("/api/cloudinary/test")
+    def cloudinary_test():
+        import os
+        cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME", "")
+        api_key = os.environ.get("CLOUDINARY_API_KEY", "")
+        api_secret = os.environ.get("CLOUDINARY_API_SECRET", "")
+        return jsonify({
+            "CLOUDINARY_CLOUD_NAME": cloud_name if cloud_name else "MISSING",
+            "CLOUDINARY_API_KEY": f"...{api_key[-4:]}" if api_key else "MISSING",
+            "CLOUDINARY_API_SECRET": f"...{api_secret[-4:]}" if api_secret else "MISSING",
+            "all_set": bool(cloud_name and api_key and api_secret),
+        }), 200
+
     @app.errorhandler(404)
     def not_found(e):
         return jsonify({"error": "Not found"}), 404
@@ -34,6 +47,10 @@ def create_app():
     @app.errorhandler(405)
     def method_not_allowed(e):
         return jsonify({"error": "Method not allowed"}), 405
+
+    @app.errorhandler(413)
+    def request_too_large(e):
+        return jsonify({"error": "File too large. Maximum upload size is 500MB."}), 413
 
     @app.errorhandler(500)
     def internal_error(e):

@@ -12,4 +12,4 @@ class Config:
     CLOUDINARY_API_KEY = os.environ.get("CLOUDINARY_API_KEY", "")
     CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET", "")
 
-    MAX_CONTENT_LENGTH = 200 * 1024 * 1024
+    MAX_CONTENT_LENGTH = 500 * 1024 * 1024
