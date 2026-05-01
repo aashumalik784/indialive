@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "India Live"
+version = "1.0.0"
+id = "artifacts/india-live"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21232
+
+[services.development]
+run = "pnpm --filter @workspace/india-live run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/india-live", "run", "build" ]
+publicDir = "artifacts/india-live/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21232"
+BASE_PATH = "/"
