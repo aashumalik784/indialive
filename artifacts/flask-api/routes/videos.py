@@ -138,16 +138,26 @@ def upload_video():
         f"/so_0,w_400,h_711,c_fill,f_jpg/{public_id}.jpg"
     )
 
-    video = Video(
-        user_id=current_user.id,
-        caption=caption,
-        video_url=video_url,
-        thumbnail_url=thumbnail_url,
-        cloudinary_public_id=public_id,
-        duration=duration,
-    )
-    db.session.add(video)
-    db.session.commit()
+    try:
+        db.session.rollback()
+        video = Video(
+            user_id=current_user.id,
+            caption=caption,
+            video_url=video_url,
+            thumbnail_url=thumbnail_url,
+            cloudinary_public_id=public_id,
+            duration=duration,
+        )
+        db.session.add(video)
+        db.session.commit()
+    except Exception as db_err:
+        db.session.rollback()
+        current_app.logger.error(f"DB save failed after upload: {db_err}")
+        return jsonify({
+            "error": f"Video was uploaded to Cloudinary (ID: {public_id}) but saving to database failed: {str(db_err)}. Contact support.",
+            "cloudinary_id": public_id,
+            "video_url": video_url,
+        }), 500
 
     return jsonify({"video": video.to_dict(current_user.id)}), 201
 
