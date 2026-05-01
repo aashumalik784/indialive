@@ -10,15 +10,15 @@ name = "Flask API"
 paths = ["/api"]
 
 [services.development]
-run = "python artifacts/flask-api/app.py"
+run = "bash -c 'cd /home/runner/workspace/artifacts/flask-api && python app.py'"
 
 [services.production]
 
 [services.production.build]
-args = ["pip", "install", "-r", "artifacts/flask-api/requirements.txt"]
+args = ["pip", "install", "-r", "/home/runner/workspace/artifacts/flask-api/requirements.txt"]
 
 [services.production.run]
-args = ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "app:create_app()"]
+args = ["bash", "-c", "cd /home/runner/workspace/artifacts/flask-api && gunicorn -w 4 -b 0.0.0.0:8080 'app:create_app()'"]
 
 [services.production.health.startup]
 path = "/api/healthz"
