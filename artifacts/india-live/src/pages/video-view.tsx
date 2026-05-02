@@ -2,7 +2,7 @@ import { useRoute } from "wouter";
 import { useVideo, useComments, useAddComment, useLikeVideo } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "wouter";
-import { ArrowLeft, Heart, Share2, Send, Loader2, Download } from "lucide-react";
+import { ArrowLeft, Heart, Share2, Send, Loader2, Download, Combine } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ShareSheet from "@/components/ShareSheet";
 import { formatDistanceToNow } from "date-fns";
@@ -113,6 +113,16 @@ export default function VideoView() {
             </div>
             <span className="text-white text-xs font-semibold">{video.like_count}</span>
           </button>
+          <Link
+            href={`/duet/${video.id}`}
+            className="flex flex-col items-center gap-1"
+            data-testid="button-duet-mobile"
+          >
+            <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center">
+              <Combine className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-white text-xs font-semibold">Duet</span>
+          </Link>
         </div>
       </div>
 
@@ -131,7 +141,15 @@ export default function VideoView() {
               <div className="text-zinc-400 text-xs">{formatDistanceToNow(new Date(video.created_at))} ago</div>
             </div>
           </div>
-          <div className="hidden md:flex gap-4">
+          <div className="hidden md:flex gap-4 items-center">
+            <Link
+              href={`/duet/${video.id}`}
+              className="flex items-center gap-2 text-zinc-300 hover:text-white"
+              data-testid="button-duet"
+            >
+              <Combine className="w-5 h-5" />
+              <span className="text-sm font-semibold">Duet</span>
+            </Link>
             <button 
               onClick={() => likeVideo(video.id)}
               className="flex items-center gap-2 text-zinc-300 hover:text-white"

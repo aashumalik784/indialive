@@ -18,6 +18,7 @@ import LiveWatch from "@/pages/live-watch";
 import NotificationsPage from "@/pages/notifications";
 import HashtagPage from "@/pages/hashtag";
 import AccountPage from "@/pages/account";
+import DuetPage from "@/pages/duet";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,6 +44,7 @@ function Router() {
       <Route path="/notifications" component={NotificationsPage} />
       <Route path="/hashtag/:tag" component={HashtagPage} />
       <Route path="/account" component={AccountPage} />
+      <Route path="/duet/:videoId" component={DuetPage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -73,6 +73,7 @@ class Video(db.Model):
     cloudinary_public_id = db.Column(db.String(200), nullable=True)
     duration = db.Column(db.Float, nullable=True)
     view_count = db.Column(db.Integer, default=0)
+    duet_of = db.Column(db.Integer, db.ForeignKey("videos.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     likes = db.relationship("Like", backref="video", lazy=True, cascade="all, delete-orphan")
@@ -98,6 +99,7 @@ class Video(db.Model):
             "like_count": len(self.likes),
             "comment_count": len(self.comments),
             "liked_by_user": liked_by_user,
+            "duet_of": self.duet_of,
             "created_at": self.created_at.isoformat(),
         }
 

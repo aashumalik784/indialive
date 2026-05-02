@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Heart, MessageCircle, Share2, Music2,
-  Play, Pause, RefreshCw, VideoOff, Download
+  Play, Pause, RefreshCw, VideoOff, Download, Combine
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -363,6 +363,13 @@ function VideoCard({ video }: { video: any }) {
           </div>
           <span className="text-white text-xs font-semibold drop-shadow-md">Share</span>
         </button>
+
+        <Link href={`/duet/${video.id}`} className="flex flex-col items-center gap-1 group" onClick={e => e.stopPropagation()}>
+          <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
+            <Combine className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-white text-xs font-semibold drop-shadow-md">Duet</span>
+        </Link>
 
         <button onClick={handleDownload} disabled={isDownloading} className="flex flex-col items-center gap-1 group">
           <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
