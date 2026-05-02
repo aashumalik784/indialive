@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/api";
-import { Search, X, Play, User2, Home, Upload } from "lucide-react";
+import { Search, X, Play, User2, Home, TrendingUp, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SearchResults = {
@@ -14,11 +14,17 @@ type SearchResults = {
   user_total?: number;
 };
 
-function useSearch(q: string, kind: string) {
+type TrendingData = {
+  trending_videos: any[];
+  trending_tags: { tag: string; count: number }[];
+  popular_creators: any[];
+};
+
+function useSearch(q: string) {
   return useQuery({
-    queryKey: ["search", q, kind],
+    queryKey: ["search", q],
     queryFn: async () => {
-      const res = await apiRequest(`/api/search?q=${encodeURIComponent(q)}&kind=${kind}`);
+      const res = await apiRequest(`/api/search?q=${encodeURIComponent(q)}&kind=all`);
       return res.json() as Promise<SearchResults>;
     },
     enabled: q.trim().length > 0,
@@ -26,16 +32,27 @@ function useSearch(q: string, kind: string) {
   });
 }
 
+function useTrending() {
+  return useQuery({
+    queryKey: ["trending"],
+    queryFn: async () => {
+      const res = await apiRequest("/api/search/trending");
+      return res.json() as Promise<TrendingData>;
+    },
+    staleTime: 60_000,
+  });
+}
+
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [tab, setTab] = useState<"videos" | "users">("videos");
-  const [, setLocation] = useLocation();
   const { currentUser } = useAuth();
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data, isLoading } = useSearch(debouncedQ, "all");
+  const { data, isLoading } = useSearch(debouncedQ);
+  const { data: trending, isLoading: trendingLoading } = useTrending();
 
   const handleChange = (value: string) => {
     setQuery(value);
@@ -49,9 +66,16 @@ export default function SearchPage() {
     inputRef.current?.focus();
   };
 
+  const handleTagClick = (tag: string) => {
+    const q = `#${tag}`;
+    setQuery(q);
+    setDebouncedQ(q);
+    setTab("videos");
+  };
+
   const videos = data?.videos || [];
   const users = data?.users || [];
-  const hasResults = debouncedQ.length > 0;
+  const hasResults = debouncedQ.trim().length > 0;
 
   return (
     <div className="min-h-[100dvh] bg-black text-white flex flex-col pb-16">
@@ -81,9 +105,7 @@ export default function SearchPage() {
               onClick={() => setTab("videos")}
               className={cn(
                 "flex-1 py-1.5 rounded-full text-sm font-semibold transition-colors",
-                tab === "videos"
-                  ? "bg-primary text-black"
-                  : "bg-zinc-900 text-zinc-400 hover:text-white"
+                tab === "videos" ? "bg-primary text-black" : "bg-zinc-900 text-zinc-400 hover:text-white"
               )}
             >
               Videos {data?.video_total !== undefined ? `(${data.video_total})` : ""}
@@ -92,9 +114,7 @@ export default function SearchPage() {
               onClick={() => setTab("users")}
               className={cn(
                 "flex-1 py-1.5 rounded-full text-sm font-semibold transition-colors",
-                tab === "users"
-                  ? "bg-primary text-black"
-                  : "bg-zinc-900 text-zinc-400 hover:text-white"
+                tab === "users" ? "bg-primary text-black" : "bg-zinc-900 text-zinc-400 hover:text-white"
               )}
             >
               Creators {data?.user_total !== undefined ? `(${data.user_total})` : ""}
@@ -105,14 +125,120 @@ export default function SearchPage() {
 
       {/* Body */}
       <div className="flex-1">
+
+        {/* EXPLORE — shown when no query */}
         {!hasResults && (
-          <div className="flex flex-col items-center justify-center py-24 text-zinc-600">
-            <Search className="w-14 h-14 mb-4 opacity-30" />
-            <p className="text-lg font-semibold">Kuch dhundho</p>
-            <p className="text-sm mt-1 text-zinc-700">Videos ya creators ka naam likhein</p>
-          </div>
+          <>
+            {trendingLoading ? (
+              <div className="flex justify-center py-16">
+                <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+              </div>
+            ) : (
+              <>
+                {/* Trending Hashtags */}
+                {trending && trending.trending_tags.length > 0 && (
+                  <div className="px-4 pt-5 pb-2">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Hash className="w-4 h-4 text-primary" />
+                      <h2 className="text-sm font-bold text-white tracking-wide uppercase">Trending Hashtags</h2>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {trending.trending_tags.map(({ tag, count }) => (
+                        <button
+                          key={tag}
+                          onClick={() => handleTagClick(tag)}
+                          className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-full px-3 py-1.5 transition-colors"
+                        >
+                          <span className="text-primary font-bold text-sm">#</span>
+                          <span className="text-white text-sm font-semibold">{tag}</span>
+                          <span className="text-zinc-500 text-xs ml-0.5">{count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Popular Creators */}
+                {trending && trending.popular_creators.length > 0 && (
+                  <div className="px-4 pt-5 pb-2">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User2 className="w-4 h-4 text-primary" />
+                      <h2 className="text-sm font-bold text-white tracking-wide uppercase">Popular Creators</h2>
+                    </div>
+                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                      {trending.popular_creators.map((user) => (
+                        <Link
+                          key={user.id}
+                          href={`/profile/${user.username}`}
+                          className="flex flex-col items-center gap-2 flex-shrink-0 w-20 active:opacity-70 transition-opacity"
+                        >
+                          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary bg-zinc-900 flex-shrink-0">
+                            {user.avatar_url ? (
+                              <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <User2 className="w-7 h-7 text-zinc-600" />
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-zinc-300 font-semibold truncate w-full text-center">@{user.username}</p>
+                          <p className="text-[10px] text-zinc-600 -mt-1">{user.video_count} videos</p>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Trending Videos grid */}
+                {trending && trending.trending_videos.length > 0 && (
+                  <div className="pt-5">
+                    <div className="flex items-center gap-2 mb-3 px-4">
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                      <h2 className="text-sm font-bold text-white tracking-wide uppercase">Trending Videos</h2>
+                    </div>
+                    <div className="grid grid-cols-3 gap-0.5">
+                      {trending.trending_videos.map((video) => (
+                        <Link
+                          key={video.id}
+                          href={`/video/${video.id}`}
+                          className="aspect-[3/4] bg-zinc-900 relative overflow-hidden group"
+                        >
+                          {video.thumbnail_url ? (
+                            <img
+                              src={video.thumbnail_url}
+                              alt={video.caption}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-zinc-800">
+                              <Play className="w-8 h-8 text-zinc-600" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                          <div className="absolute bottom-1 left-1 right-1 flex items-center gap-1 text-white text-xs font-semibold drop-shadow-md">
+                            <Play className="w-3 h-3 fill-white flex-shrink-0" />
+                            <span>{video.view_count}</span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty explore state */}
+                {trending && trending.trending_videos.length === 0 && trending.trending_tags.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-24 text-zinc-600">
+                    <Search className="w-14 h-14 mb-4 opacity-30" />
+                    <p className="text-lg font-semibold">Kuch dhundho</p>
+                    <p className="text-sm mt-1 text-zinc-700">Videos ya creators ka naam likhein</p>
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
 
+        {/* SEARCH RESULTS */}
         {hasResults && isLoading && (
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
@@ -192,20 +318,20 @@ export default function SearchPage() {
 
       {/* Bottom Nav */}
       <div className="fixed bottom-0 w-full h-16 bg-black/95 backdrop-blur border-t border-white/10 flex items-center justify-around z-50">
-        <Link href="/" className="flex flex-col items-center gap-1 text-zinc-400 hover:text-white transition-colors" data-testid="nav-home">
+        <Link href="/" className="flex flex-col items-center gap-1 text-zinc-400 hover:text-white transition-colors">
           <Home className="w-5 h-5" />
           <span className="text-[10px] font-semibold">Home</span>
         </Link>
-        <Link href="/search" className="flex flex-col items-center gap-1 text-primary" data-testid="nav-search">
+        <Link href="/search" className="flex flex-col items-center gap-1 text-primary">
           <Search className="w-5 h-5" />
           <span className="text-[10px] font-semibold">Search</span>
         </Link>
-        <Link href="/upload" className="w-12 h-8 bg-gradient-to-r from-primary to-secondary rounded-xl flex items-center justify-center active:scale-95 transition-transform" data-testid="nav-upload">
+        <Link href="/upload" className="w-12 h-8 bg-gradient-to-r from-primary to-secondary rounded-xl flex items-center justify-center active:scale-95 transition-transform">
           <div className="w-10 h-6 bg-white rounded-lg flex items-center justify-center">
             <span className="text-black text-xl leading-none font-bold">+</span>
           </div>
         </Link>
-        <Link href={currentUser ? `/profile/${currentUser.username}` : "/login"} className="flex flex-col items-center gap-1 text-zinc-400 hover:text-white transition-colors" data-testid="nav-profile">
+        <Link href={currentUser ? `/profile/${currentUser.username}` : "/login"} className="flex flex-col items-center gap-1 text-zinc-400 hover:text-white transition-colors">
           <User2 className="w-5 h-5" />
           <span className="text-[10px] font-semibold">Profile</span>
         </Link>
