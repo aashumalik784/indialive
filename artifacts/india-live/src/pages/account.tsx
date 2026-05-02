@@ -183,11 +183,6 @@ export default function AccountPage() {
         )}
       </div>
 
-      {/* Settings note */}
-      <div className="px-4 pt-3 pb-2">
-        <p className="text-center text-xs text-zinc-700">Logout ke liye Settings mein jaayein</p>
-      </div>
-
       <BottomNav active="profile" />
 
     </div>

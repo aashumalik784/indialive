@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Heart, MessageCircle, Share2, Music2,
-  Play, Pause, RefreshCw, VideoOff, Download
+  Play, Pause, RefreshCw, VideoOff, Download, Volume2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -72,7 +72,7 @@ function LiveBar() {
 function ExitDialog({ onStay, onExit }: { onStay: () => void; onExit: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-end">
-      <div className="w-full bg-zinc-900 rounded-t-3xl p-6 space-y-3 pb-10">
+      <div className="w-full bg-zinc-900 rounded-t-3xl p-6 pb-10 space-y-3">
         <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-4" />
         <p className="text-white font-bold text-center text-lg">App band karna chahte hain?</p>
         <p className="text-zinc-500 text-sm text-center">India Live se bahar jaana chahte hain?</p>
@@ -98,6 +98,8 @@ function ExitDialog({ onStay, onExit }: { onStay: () => void; onExit: () => void
 export default function Feed() {
   const [activeTab, setActiveTab] = useState<"foryou" | "following">("foryou");
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [soundUnlocked, setSoundUnlocked] = useState(false);
+  const exitDialogRef = useRef(false);
   const { currentUser } = useAuth();
 
   const forYou = useVideos(1, 10);
@@ -107,33 +109,30 @@ export default function Feed() {
   const { isLoading, isError, refetch } = active;
   const videos = active.data?.videos ?? [];
 
+  // Exit dialog — back button intercept
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
+    history.pushState({ indialive: true }, "", window.location.href);
+
+    const handlePopState = () => {
+      if (!exitDialogRef.current) {
+        exitDialogRef.current = true;
+        setShowExitDialog(true);
+        history.pushState({ indialive: true }, "", window.location.href);
+      }
     };
 
-    const handlePopState = (e: PopStateEvent) => {
-      e.preventDefault();
-      history.pushState(null, "", window.location.href);
-      setShowExitDialog(true);
-    };
-
-    history.pushState(null, "", window.location.href);
-    window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
-    };
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  const handleStay = () => {
+    exitDialogRef.current = false;
+    setShowExitDialog(false);
+  };
 
   const handleExit = () => {
     window.close();
-    setTimeout(() => {
-      window.location.href = "about:blank";
-    }, 100);
+    setTimeout(() => { window.location.href = "about:blank"; }, 150);
   };
 
   if (isLoading) return (
@@ -206,61 +205,94 @@ export default function Feed() {
         </div>
       ) : (
         videos.map((video) => (
-          <VideoCard key={video.id} video={video} />
+          <VideoCard
+            key={video.id}
+            video={video}
+            soundUnlocked={soundUnlocked}
+            onUnlockSound={() => setSoundUnlocked(true)}
+          />
         ))
       )}
 
       <BottomNav active="home" />
 
       {showExitDialog && (
-        <ExitDialog
-          onStay={() => setShowExitDialog(false)}
-          onExit={handleExit}
-        />
+        <ExitDialog onStay={handleStay} onExit={handleExit} />
       )}
     </div>
   );
 }
 
-function VideoCard({ video }: { video: any }) {
+function VideoCard({
+  video,
+  soundUnlocked,
+  onUnlockSound,
+}: {
+  video: any;
+  soundUnlocked: boolean;
+  onUnlockSound: () => void;
+}) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [showHeart, setShowHeart] = useState(false);
   const [showPlayIcon, setShowPlayIcon] = useState(false);
   const [iconFading, setIconFading] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showSoundHint, setShowSoundHint] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const iconTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isVisibleRef = useRef(false);
   const { mutate: likeVideo } = useLikeVideo();
   const { toast } = useToast();
+
+  // When global sound is unlocked, unmute this video if it's visible
+  useEffect(() => {
+    if (soundUnlocked && videoRef.current) {
+      videoRef.current.muted = false;
+      setIsMuted(false);
+    }
+  }, [soundUnlocked]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const playPromise = videoRef.current?.play();
-            if (playPromise) {
-              playPromise.catch(() => {
-                if (videoRef.current) {
-                  videoRef.current.muted = true;
-                  videoRef.current.play().catch(() => {});
-                }
-              });
+            isVisibleRef.current = true;
+            if (videoRef.current) {
+              videoRef.current.muted = !soundUnlocked;
+              setIsMuted(!soundUnlocked);
+              const playPromise = videoRef.current.play();
+              if (playPromise) {
+                playPromise.catch(() => {
+                  if (videoRef.current) {
+                    videoRef.current.muted = true;
+                    setIsMuted(true);
+                    videoRef.current.play().catch(() => {});
+                  }
+                });
+              }
             }
             setIsPlaying(true);
+            // Show sound hint only for first video if sound not unlocked
+            if (!soundUnlocked) {
+              setShowSoundHint(true);
+            }
           } else {
+            isVisibleRef.current = false;
             videoRef.current?.pause();
             setIsPlaying(false);
+            setShowSoundHint(false);
           }
         });
       },
-      { threshold: 0.5 }
+      { threshold: 0.6 }
     );
     if (containerRef.current) observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [soundUnlocked]);
 
   const showIconBriefly = useCallback(() => {
     setIconFading(false);
@@ -272,7 +304,18 @@ function VideoCard({ video }: { video: any }) {
     }, 800);
   }, []);
 
-  const handleTogglePlay = () => {
+  const handleTap = () => {
+    // First tap ever — unlock sound
+    if (!soundUnlocked && videoRef.current) {
+      videoRef.current.muted = false;
+      setIsMuted(false);
+      setShowSoundHint(false);
+      onUnlockSound();
+      // Don't toggle play on first sound-unlock tap
+      return;
+    }
+
+    // Normal tap — toggle play/pause
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
@@ -331,10 +374,23 @@ function VideoCard({ video }: { video: any }) {
         poster={video.thumbnail_url}
         loop
         playsInline
+        muted
         className="w-full h-full object-cover"
-        onClick={handleTogglePlay}
+        onClick={handleTap}
         onDoubleClick={handleDoubleTap}
       />
+
+      {/* Sound unlock hint — shown on first video before any tap */}
+      {showSoundHint && !soundUnlocked && (
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none animate-pulse"
+        >
+          <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md rounded-full px-5 py-3 border border-white/20">
+            <Volume2 className="w-5 h-5 text-white" />
+            <span className="text-white text-sm font-semibold">Awaaz ke liye tap karein</span>
+          </div>
+        </div>
+      )}
 
       {/* Double-tap heart */}
       {showHeart && (
@@ -370,21 +426,21 @@ function VideoCard({ video }: { video: any }) {
           </div>
         </Link>
 
-        <button onClick={() => likeVideo(String(video.id))} className="flex flex-col items-center gap-1 group">
+        <button onClick={(e) => { e.stopPropagation(); likeVideo(String(video.id)); }} className="flex flex-col items-center gap-1 group">
           <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
             <Heart className={cn("w-7 h-7 transition-colors", video.liked_by_user ? "fill-red-500 text-red-500" : "text-white")} />
           </div>
           <span className="text-white text-xs font-semibold drop-shadow-md">{video.like_count}</span>
         </button>
 
-        <Link href={`/video/${video.id}`} className="flex flex-col items-center gap-1 group">
+        <Link href={`/video/${video.id}`} className="flex flex-col items-center gap-1 group" onClick={e => e.stopPropagation()}>
           <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
             <MessageCircle className="w-7 h-7 text-white" />
           </div>
           <span className="text-white text-xs font-semibold drop-shadow-md">{video.comment_count}</span>
         </Link>
 
-        <button onClick={() => setShowShare(true)} className="flex flex-col items-center gap-1 group">
+        <button onClick={(e) => { e.stopPropagation(); setShowShare(true); }} className="flex flex-col items-center gap-1 group">
           <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
             <Share2 className="w-6 h-6 text-white" />
           </div>
@@ -411,7 +467,7 @@ function VideoCard({ video }: { video: any }) {
 
       {/* Bottom info */}
       <div className="absolute bottom-0 left-0 w-full p-4 pb-20 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-0">
-        <Link href={`/profile/${video.author.username}`} className="flex items-center gap-2 mb-2 pointer-events-auto w-fit">
+        <Link href={`/profile/${video.author.username}`} className="flex items-center gap-2 mb-2 pointer-events-auto w-fit" onClick={e => e.stopPropagation()}>
           <div className="w-8 h-8 rounded-full border border-primary overflow-hidden flex-shrink-0">
             <img
               src={video.author.avatar_url || `https://ui-avatars.com/api/?name=${video.author.username}&background=FF9933&color=000`}
