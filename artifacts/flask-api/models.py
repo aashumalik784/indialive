@@ -143,3 +143,38 @@ class Comment(db.Model):
             "content": self.content,
             "created_at": self.created_at.isoformat(),
         }
+
+
+class Notification(db.Model):
+    __tablename__ = "notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    actor_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    type = db.Column(db.String(20), nullable=False)  # like | comment | follow
+    video_id = db.Column(db.Integer, db.ForeignKey("videos.id"), nullable=True)
+    read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    actor = db.relationship("User", foreign_keys=[actor_id])
+    video = db.relationship("Video", foreign_keys=[video_id])
+
+    def to_dict(self):
+        d = {
+            "id": self.id,
+            "type": self.type,
+            "read": self.read,
+            "created_at": self.created_at.isoformat(),
+            "actor": {
+                "id": self.actor.id,
+                "username": self.actor.username,
+                "avatar_url": self.actor.avatar_url,
+            },
+        }
+        if self.video:
+            d["video"] = {
+                "id": self.video.id,
+                "thumbnail_url": self.video.thumbnail_url,
+                "caption": self.video.caption,
+            }
+        return d

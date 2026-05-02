@@ -4,12 +4,12 @@ import { Link } from "wouter";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Heart, MessageCircle, Share2, Music2,
-  Play, Pause, Search, User2, Home,
-  RefreshCw, VideoOff, Radio, Download
+  Play, Pause, RefreshCw, VideoOff, Radio, Download
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import ShareSheet from "@/components/ShareSheet";
+import BottomNav from "@/components/BottomNav";
 
 interface LiveStream {
   username: string;
@@ -152,7 +152,7 @@ export default function Feed() {
         videos.map((video) => <VideoCard key={video.id} video={video} />)
       )}
 
-      <BottomNav />
+      <BottomNav active="home" />
     </div>
   );
 }
@@ -349,7 +349,15 @@ function VideoCard({ video }: { video: any }) {
           </div>
           <span className="text-white font-bold text-base drop-shadow-lg">@{video.author.username}</span>
         </Link>
-        <p className="text-white/90 text-sm mb-2 line-clamp-2">{video.caption}</p>
+        <p className="text-white/90 text-sm mb-2 line-clamp-2 pointer-events-auto">
+          {video.caption.split(/(\s+)/).map((word: string, i: number) =>
+            word.startsWith("#") ? (
+              <Link key={i} href={`/hashtag/${word.slice(1)}`} className="text-primary font-semibold" onClick={e => e.stopPropagation()}>
+                {word}
+              </Link>
+            ) : word
+          )}
+        </p>
         <div className="flex items-center gap-2 text-white/70 text-xs">
           <Music2 className="w-3 h-3" />
           <span>Original Audio · {video.author.username}</span>
@@ -359,31 +367,3 @@ function VideoCard({ video }: { video: any }) {
   );
 }
 
-function BottomNav() {
-  const { currentUser } = useAuth();
-  return (
-    <div className="fixed bottom-0 w-full h-16 bg-black/95 backdrop-blur border-t border-white/10 flex items-center justify-around z-50">
-      <Link href="/" className="flex flex-col items-center gap-0.5 text-primary" data-testid="nav-home">
-        <Home className="w-5 h-5" />
-        <span className="text-[10px] font-bold">Home</span>
-      </Link>
-      <Link href="/search" className="flex flex-col items-center gap-0.5 text-zinc-400 hover:text-white transition-colors" data-testid="nav-search">
-        <Search className="w-5 h-5" />
-        <span className="text-[10px] font-semibold">Search</span>
-      </Link>
-      <Link href="/upload" className="w-12 h-8 bg-gradient-to-r from-primary to-secondary rounded-xl flex items-center justify-center active:scale-95 transition-transform" data-testid="nav-upload">
-        <div className="w-10 h-6 bg-white rounded-lg flex items-center justify-center">
-          <span className="text-black text-xl leading-none font-bold">+</span>
-        </div>
-      </Link>
-      <Link href={currentUser ? `/go-live` : "/login"} className="flex flex-col items-center gap-0.5 text-red-500 hover:text-red-400 transition-colors" data-testid="nav-live">
-        <Radio className="w-5 h-5" />
-        <span className="text-[10px] font-semibold">Live</span>
-      </Link>
-      <Link href={currentUser ? `/profile/${currentUser.username}` : "/login"} className="flex flex-col items-center gap-0.5 text-zinc-400 hover:text-white transition-colors" data-testid="nav-profile">
-        <User2 className="w-5 h-5" />
-        <span className="text-[10px] font-semibold">Profile</span>
-      </Link>
-    </div>
-  );
-}

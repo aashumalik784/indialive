@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, session
-from models import db, User, Video, Follow
+from models import db, User, Video, Follow, Notification
 
 follow_bp = Blueprint("follow", __name__)
 
@@ -37,6 +37,12 @@ def toggle_follow(username):
     else:
         follow = Follow(follower_id=current_user.id, following_id=target.id)
         db.session.add(follow)
+        notif = Notification(
+            user_id=target.id,
+            actor_id=current_user.id,
+            type="follow",
+        )
+        db.session.add(notif)
         db.session.commit()
         return jsonify({
             "is_following": True,

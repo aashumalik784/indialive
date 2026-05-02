@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-from models import db, User, Video, Like, Comment
+from models import db, User, Video, Like, Comment, Notification
 
 engagement_bp = Blueprint("engagement", __name__)
 
@@ -11,13 +11,25 @@ def get_current_user():
     return User.query.get(user_id)
 
 
+def create_notification(user_id, actor_id, notif_type, video_id=None):
+    if user_id == actor_id:
+        return
+    notif = Notification(
+        user_id=user_id,
+        actor_id=actor_id,
+        type=notif_type,
+        video_id=video_id,
+    )
+    db.session.add(notif)
+
+
 @engagement_bp.route("/api/videos/<int:video_id>/like", methods=["POST"])
 def toggle_like(video_id):
     current_user = get_current_user()
     if not current_user:
         return jsonify({"error": "Authentication required"}), 401
 
-    Video.query.get_or_404(video_id)
+    video = Video.query.get_or_404(video_id)
     existing_like = Like.query.filter_by(
         user_id=current_user.id, video_id=video_id
     ).first()
@@ -29,6 +41,7 @@ def toggle_like(video_id):
     else:
         like = Like(user_id=current_user.id, video_id=video_id)
         db.session.add(like)
+        create_notification(video.user_id, current_user.id, "like", video_id)
         db.session.commit()
         liked = True
 
@@ -60,7 +73,7 @@ def add_comment(video_id):
     if not current_user:
         return jsonify({"error": "Authentication required"}), 401
 
-    Video.query.get_or_404(video_id)
+    video = Video.query.get_or_404(video_id)
     data = request.get_json()
     content = data.get("content", "").strip()
 
@@ -72,6 +85,7 @@ def add_comment(video_id):
 
     comment = Comment(user_id=current_user.id, video_id=video_id, content=content)
     db.session.add(comment)
+    create_notification(video.user_id, current_user.id, "comment", video_id)
     db.session.commit()
 
     return jsonify({"comment": comment.to_dict()}), 201

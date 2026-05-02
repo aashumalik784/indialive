@@ -1,12 +1,13 @@
 import { useRoute, Link } from "wouter";
 import { useUserProfile, useUserVideos, useFollowUser } from "@/hooks/use-api";
 import {
-  ArrowLeft, Grip, Heart, Lock, Loader2,
-  Search, User2, Home, Settings, Radio, UserCheck, UserPlus
+  ArrowLeft, Grip, Heart, Loader2,
+  User2, Settings, UserCheck, UserPlus
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import BottomNav from "@/components/BottomNav";
 
 export default function Profile() {
   const [, params] = useRoute("/profile/:username");
@@ -184,30 +185,7 @@ export default function Profile() {
         )}
       </main>
 
-      {/* Bottom Nav */}
-      <div className="fixed bottom-0 w-full h-16 bg-black/95 backdrop-blur border-t border-white/10 flex items-center justify-around z-50">
-        <Link href="/" className="flex flex-col items-center gap-0.5 text-zinc-400" data-testid="nav-home">
-          <Home className="w-5 h-5" />
-          <span className="text-[10px] font-semibold">Home</span>
-        </Link>
-        <Link href="/search" className="flex flex-col items-center gap-0.5 text-zinc-400" data-testid="nav-search">
-          <Search className="w-5 h-5" />
-          <span className="text-[10px] font-semibold">Search</span>
-        </Link>
-        <Link href="/upload" className="w-12 h-8 bg-gradient-to-r from-primary to-secondary rounded-xl flex items-center justify-center active:scale-95 transition-transform">
-          <div className="w-10 h-6 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-black text-xl leading-none font-bold">+</span>
-          </div>
-        </Link>
-        <Link href={currentUser ? "/go-live" : "/login"} className="flex flex-col items-center gap-0.5 text-red-500">
-          <Radio className="w-5 h-5" />
-          <span className="text-[10px] font-semibold">Live</span>
-        </Link>
-        <div className="flex flex-col items-center gap-0.5 text-primary">
-          <User2 className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Profile</span>
-        </div>
-      </div>
+      <BottomNav active="profile" />
 
       {/* Logout confirm */}
       {showLogoutConfirm && (

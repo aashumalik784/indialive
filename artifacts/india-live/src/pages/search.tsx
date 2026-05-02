@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
 import { Link } from "wouter";
-import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/api";
-import { Search, X, Play, User2, Home, TrendingUp, Hash } from "lucide-react";
+import { Search, X, Play, User2, TrendingUp, Hash } from "lucide-react";
+import BottomNav from "@/components/BottomNav";
 import { cn } from "@/lib/utils";
 
 type SearchResults = {
@@ -316,26 +316,7 @@ export default function SearchPage() {
         )}
       </div>
 
-      {/* Bottom Nav */}
-      <div className="fixed bottom-0 w-full h-16 bg-black/95 backdrop-blur border-t border-white/10 flex items-center justify-around z-50">
-        <Link href="/" className="flex flex-col items-center gap-1 text-zinc-400 hover:text-white transition-colors">
-          <Home className="w-5 h-5" />
-          <span className="text-[10px] font-semibold">Home</span>
-        </Link>
-        <Link href="/search" className="flex flex-col items-center gap-1 text-primary">
-          <Search className="w-5 h-5" />
-          <span className="text-[10px] font-semibold">Search</span>
-        </Link>
-        <Link href="/upload" className="w-12 h-8 bg-gradient-to-r from-primary to-secondary rounded-xl flex items-center justify-center active:scale-95 transition-transform">
-          <div className="w-10 h-6 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-black text-xl leading-none font-bold">+</span>
-          </div>
-        </Link>
-        <Link href={currentUser ? `/profile/${currentUser.username}` : "/login"} className="flex flex-col items-center gap-1 text-zinc-400 hover:text-white transition-colors">
-          <User2 className="w-5 h-5" />
-          <span className="text-[10px] font-semibold">Profile</span>
-        </Link>
-      </div>
+      <BottomNav active="search" />
     </div>
   );
 }

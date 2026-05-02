@@ -15,6 +15,8 @@ import SearchPage from "@/pages/search";
 import Settings from "@/pages/settings";
 import GoLive from "@/pages/go-live";
 import LiveWatch from "@/pages/live-watch";
+import NotificationsPage from "@/pages/notifications";
+import HashtagPage from "@/pages/hashtag";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +39,8 @@ function Router() {
       <Route path="/video/:id" component={VideoView} />
       <Route path="/go-live" component={GoLive} />
       <Route path="/live/:username" component={LiveWatch} />
+      <Route path="/notifications" component={NotificationsPage} />
+      <Route path="/hashtag/:tag" component={HashtagPage} />
       <Route component={NotFound} />
     </Switch>
   );
