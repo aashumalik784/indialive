@@ -142,6 +142,8 @@ def upload_video():
         db.session.rollback()
         duet_of_id = request.form.get("duet_of")
         duet_of_int = int(duet_of_id) if duet_of_id and duet_of_id.isdigit() else None
+        stitch_of_id = request.form.get("stitch_of")
+        stitch_of_int = int(stitch_of_id) if stitch_of_id and stitch_of_id.isdigit() else None
         video = Video(
             user_id=current_user.id,
             caption=caption,
@@ -150,6 +152,7 @@ def upload_video():
             cloudinary_public_id=public_id,
             duration=duration,
             duet_of=duet_of_int,
+            stitch_of=stitch_of_int,
         )
         db.session.add(video)
         db.session.commit()

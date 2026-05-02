@@ -2,7 +2,7 @@ import { useRoute } from "wouter";
 import { useVideo, useComments, useAddComment, useLikeVideo } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "wouter";
-import { ArrowLeft, Heart, Share2, Send, Loader2, Download, Combine } from "lucide-react";
+import { ArrowLeft, Heart, Share2, Send, Loader2, Download, Combine, Scissors } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ShareSheet from "@/components/ShareSheet";
 import { formatDistanceToNow } from "date-fns";
@@ -123,6 +123,16 @@ export default function VideoView() {
             </div>
             <span className="text-white text-xs font-semibold">Duet</span>
           </Link>
+          <Link
+            href={`/stitch/${video.id}`}
+            className="flex flex-col items-center gap-1"
+            data-testid="button-stitch-mobile"
+          >
+            <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center">
+              <Scissors className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-white text-xs font-semibold">Stitch</span>
+          </Link>
         </div>
       </div>
 
@@ -149,6 +159,14 @@ export default function VideoView() {
             >
               <Combine className="w-5 h-5" />
               <span className="text-sm font-semibold">Duet</span>
+            </Link>
+            <Link
+              href={`/stitch/${video.id}`}
+              className="flex items-center gap-2 text-zinc-300 hover:text-white"
+              data-testid="button-stitch"
+            >
+              <Scissors className="w-5 h-5" />
+              <span className="text-sm font-semibold">Stitch</span>
             </Link>
             <button 
               onClick={() => likeVideo(video.id)}

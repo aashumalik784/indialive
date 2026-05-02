@@ -19,6 +19,7 @@ import NotificationsPage from "@/pages/notifications";
 import HashtagPage from "@/pages/hashtag";
 import AccountPage from "@/pages/account";
 import DuetPage from "@/pages/duet";
+import StitchPage from "@/pages/stitch";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/hashtag/:tag" component={HashtagPage} />
       <Route path="/account" component={AccountPage} />
       <Route path="/duet/:videoId" component={DuetPage} />
+      <Route path="/stitch/:videoId" component={StitchPage} />
       <Route component={NotFound} />
     </Switch>
   );
