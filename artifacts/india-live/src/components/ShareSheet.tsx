@@ -241,10 +241,28 @@ export default function ShareSheet({ open, onClose, url, caption = "" }: ShareSh
           </button>
         </div>
 
-        {/* App icons grid */}
+        {/* WhatsApp prominent button */}
+        <div className="px-5 pb-4">
+          <button
+            onClick={() => openLink(`https://api.whatsapp.com/send?text=${encodedText}`)}
+            className="w-full flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20bc5a] active:scale-[0.98] transition-all rounded-2xl py-4 shadow-lg shadow-[#25D366]/20"
+          >
+            <WhatsAppIcon />
+            <span className="text-white font-bold text-base">WhatsApp par Share Karein</span>
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 px-5 mb-4">
+          <div className="flex-1 h-px bg-zinc-800" />
+          <span className="text-zinc-600 text-xs font-semibold">Ya inn par share karein</span>
+          <div className="flex-1 h-px bg-zinc-800" />
+        </div>
+
+        {/* Other apps grid — skip WhatsApp since it has its own button */}
         <div className="px-5 pb-6">
           <div className="grid grid-cols-4 gap-4">
-            {apps.map((app) => (
+            {apps.filter(a => a.name !== "WhatsApp").map((app) => (
               <ShareSheetApp
                 key={app.name}
                 name={app.name}
