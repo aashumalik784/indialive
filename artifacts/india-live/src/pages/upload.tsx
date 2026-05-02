@@ -1,17 +1,29 @@
 import { useState, useRef } from "react";
 import { useLocation, Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, ArrowLeft, Loader2, X } from "lucide-react";
+import {
+  ArrowLeft, Video, X, CheckCircle2,
+  Hash, Loader2, ChevronRight, Sparkles
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const HASHTAG_SUGGESTIONS = [
+  "#trending", "#viral", "#india", "#indialive",
+  "#reels", "#funny", "#dance", "#music",
+  "#desi", "#bollywood", "#comedy", "#love",
+];
+
+type Step = 1 | 2;
 
 export default function Upload() {
+  const [step, setStep] = useState<Step>(1);
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [uploadDone, setUploadDone] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { currentUser } = useAuth();
   const [, setLocation] = useLocation();
@@ -23,23 +35,28 @@ export default function Upload() {
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selected = e.target.files[0];
-      if (selected.type.startsWith("video/")) {
-        setFile(selected);
-      } else {
-        toast({ title: "Invalid file type", description: "Please select a video file.", variant: "destructive" });
-      }
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+    if (!selected.type.startsWith("video/")) {
+      toast({ title: "Galat file", description: "Sirf video files allowed hain.", variant: "destructive" });
+      return;
     }
+    setFile(selected);
+    setPreviewUrl(URL.createObjectURL(selected));
+    setStep(2);
+  };
+
+  const addHashtag = (tag: string) => {
+    if (caption.includes(tag)) return;
+    setCaption((prev) => (prev.trim() ? `${prev.trim()} ${tag}` : tag));
   };
 
   const handleUpload = () => {
     if (!file) return;
     if (!caption.trim()) {
-      toast({ title: "Caption required", description: "Please add a caption before posting.", variant: "destructive" });
+      toast({ title: "Caption zaroori hai", description: "Post karne se pehle caption likhein.", variant: "destructive" });
       return;
     }
-
     setIsUploading(true);
     setProgress(0);
 
@@ -54,120 +71,250 @@ export default function Upload() {
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
-        const percentComplete = (event.loaded / event.total) * 100;
-        setProgress(Math.round(percentComplete));
+        setProgress(Math.round((event.loaded / event.total) * 100));
       }
     };
 
     xhr.onload = () => {
       setIsUploading(false);
       if (xhr.status >= 200 && xhr.status < 300) {
-        toast({ title: "Video uploaded successfully!" });
-        setLocation(`/profile/${currentUser.username}`);
+        setUploadDone(true);
+        setTimeout(() => setLocation(`/profile/${currentUser.username}`), 2000);
       } else {
-        let errorMsg = `Server error (${xhr.status})`;
-        try {
-          const data = JSON.parse(xhr.responseText);
-          if (data.error) errorMsg = data.error;
-        } catch (_) {}
-        toast({ title: "Upload failed", description: errorMsg, variant: "destructive" });
+        let msg = `Server error (${xhr.status})`;
+        try { const d = JSON.parse(xhr.responseText); if (d.error) msg = d.error; } catch (_) {}
+        toast({ title: "Upload failed", description: msg, variant: "destructive" });
       }
     };
 
     xhr.onerror = () => {
       setIsUploading(false);
-      toast({ title: "Upload failed", description: "Network error — check your connection.", variant: "destructive" });
-    };
-
-    xhr.ontimeout = () => {
-      setIsUploading(false);
-      toast({ title: "Upload timed out", description: "The video is too large or connection is slow.", variant: "destructive" });
+      toast({ title: "Network error", description: "Internet connection check karein.", variant: "destructive" });
     };
 
     xhr.timeout = 600000;
+    xhr.ontimeout = () => {
+      setIsUploading(false);
+      toast({ title: "Timeout", description: "Video bohot bada hai ya connection slow hai.", variant: "destructive" });
+    };
 
     xhr.send(formData);
   };
 
-  return (
-    <div className="min-h-screen w-full bg-black text-white flex flex-col">
-      <header className="flex items-center p-4 border-b border-white/10 sticky top-0 bg-black/80 backdrop-blur z-10">
-        <Link href="/" className="mr-4" data-testid="link-back">
-          <ArrowLeft className="w-6 h-6 text-white" />
-        </Link>
-        <h1 className="text-xl font-bold flex-1">New Post</h1>
-        <Button 
-          onClick={handleUpload} 
-          disabled={!file || isUploading}
-          className="bg-primary text-black font-bold hover:bg-primary/90"
-          data-testid="button-post"
-        >
-          {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Post"}
-        </Button>
-      </header>
+  if (uploadDone) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 text-white">
+        <div className="w-20 h-20 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center animate-bounce">
+          <CheckCircle2 className="w-10 h-10 text-primary" />
+        </div>
+        <p className="text-2xl font-bold">Video Upload Ho Gaya!</p>
+        <p className="text-zinc-400 text-sm">Aapki profile par redirect ho raha hai...</p>
+      </div>
+    );
+  }
 
-      <main className="flex-1 p-4 max-w-lg mx-auto w-full flex flex-col gap-6">
-        {!file ? (
-          <div 
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full aspect-[9/16] max-h-[60vh] bg-zinc-900 border-2 border-dashed border-zinc-800 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
-            data-testid="button-select-video"
-          >
-            <UploadCloud className="w-12 h-12 text-zinc-500 mb-4" />
-            <p className="text-zinc-400 font-medium">Tap to select video</p>
-            <p className="text-zinc-600 text-sm mt-2">MP4, MOV, WebM up to 500MB</p>
-          </div>
-        ) : (
-          <div className="relative w-full aspect-[9/16] max-h-[60vh] bg-zinc-900 rounded-2xl overflow-hidden">
-            <video 
-              src={URL.createObjectURL(file)} 
-              className="w-full h-full object-contain"
-              controls
+  return (
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-black/95 backdrop-blur border-b border-zinc-900 flex items-center px-4 h-14 gap-3">
+        <button
+          onClick={() => step === 2 && !isUploading ? setStep(1) : setLocation("/")}
+          className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div className="flex-1">
+          <h1 className="font-bold text-base">
+            {step === 1 ? "Video Chunein" : "Post Banayein"}
+          </h1>
+        </div>
+        {/* Step indicator */}
+        <div className="flex items-center gap-1.5">
+          {[1, 2].map((s) => (
+            <div
+              key={s}
+              className={cn(
+                "h-1.5 rounded-full transition-all duration-300",
+                s <= step ? "bg-primary w-6" : "bg-zinc-800 w-3"
+              )}
             />
-            {!isUploading && (
-              <button 
-                onClick={() => setFile(null)}
-                className="absolute top-4 right-4 w-8 h-8 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white hover:bg-black/70"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
+          ))}
+        </div>
+      </div>
+
+      {/* Step 1: Select Video */}
+      {step === 1 && (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
+          {/* Big upload zone */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full max-w-xs aspect-[9/16] max-h-[55vh] relative rounded-3xl overflow-hidden border-2 border-dashed border-zinc-700 hover:border-primary/60 transition-all duration-300 group bg-zinc-950 flex flex-col items-center justify-center gap-4"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30 group-active:scale-95 transition-transform">
+              <Video className="w-10 h-10 text-black" />
+            </div>
+            <div className="text-center px-4">
+              <p className="font-bold text-white text-lg">Video Select Karein</p>
+              <p className="text-zinc-500 text-sm mt-1">Tap karein ya gallery se chunein</p>
+            </div>
+            <div className="flex gap-2 flex-wrap justify-center px-6">
+              {["MP4", "MOV", "WebM"].map((f) => (
+                <span key={f} className="text-xs bg-zinc-900 border border-zinc-800 text-zinc-500 px-2 py-0.5 rounded-full">{f}</span>
+              ))}
+            </div>
+          </button>
+
+          {/* Tips */}
+          <div className="w-full max-w-xs space-y-2">
+            {[
+              { icon: "✨", text: "Vertical video best dikhta hai (9:16)" },
+              { icon: "🎵", text: "Original audio ke saath upload karein" },
+              { icon: "📱", text: "Max size: 500MB" },
+            ].map(({ icon, text }) => (
+              <div key={text} className="flex items-center gap-2.5 text-zinc-500 text-xs">
+                <span>{icon}</span>
+                <span>{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Preview + Caption */}
+      {step === 2 && previewUrl && (
+        <div className="flex-1 flex flex-col md:flex-row gap-0">
+          {/* Video preview */}
+          <div className="relative bg-zinc-950 md:w-[45%] flex items-center justify-center">
+            <div className="relative w-full max-w-[220px] mx-auto my-4">
+              {/* Phone frame */}
+              <div className="w-full aspect-[9/16] rounded-[28px] overflow-hidden border-4 border-zinc-800 shadow-2xl relative bg-black">
+                <video
+                  src={previewUrl}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+                {/* Caption preview on video */}
+                {caption && (
+                  <div className="absolute bottom-4 left-3 right-3">
+                    <p className="text-white text-xs font-medium line-clamp-2 drop-shadow-lg">
+                      {caption}
+                    </p>
+                  </div>
+                )}
+              </div>
+              {/* Remove button */}
+              {!isUploading && (
+                <button
+                  onClick={() => { setFile(null); setPreviewUrl(null); setStep(1); }}
+                  className="absolute -top-2 -right-2 w-7 h-7 bg-zinc-800 border border-zinc-700 rounded-full flex items-center justify-center hover:bg-red-500/30"
+                >
+                  <X className="w-4 h-4 text-zinc-400" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Caption & options */}
+          <div className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
+            {/* Caption */}
+            <div>
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-2">Caption</label>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Apni video ke baare mein kuch likhein..."
+                maxLength={500}
+                rows={4}
+                disabled={isUploading}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder:text-zinc-600 text-sm px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <div className="flex justify-between mt-1">
+                <span className="text-xs text-zinc-600 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Hashtags add karein
+                </span>
+                <span className="text-xs text-zinc-600">{caption.length}/500</span>
+              </div>
+            </div>
+
+            {/* Hashtag chips */}
+            <div className="flex flex-wrap gap-2">
+              {HASHTAG_SUGGESTIONS.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => addHashtag(tag)}
+                  disabled={isUploading}
+                  className={cn(
+                    "flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-all",
+                    caption.includes(tag)
+                      ? "bg-primary/20 border-primary text-primary"
+                      : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-white active:scale-95"
+                  )}
+                >
+                  <Hash className="w-3 h-3" />
+                  {tag.replace("#", "")}
+                </button>
+              ))}
+            </div>
+
+            {/* Upload progress */}
             {isUploading && (
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center">
-                <div className="text-4xl font-bold text-white mb-4">{progress}%</div>
-                <div className="w-2/3 h-2 bg-zinc-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-300"
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-white">Upload ho raha hai...</span>
+                  <span className="text-primary font-bold text-lg">{progress}%</span>
+                </div>
+                <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
+                <p className="text-xs text-zinc-500 mt-2">
+                  {progress < 90 ? "Cloudinary par upload ho raha hai..." : "Almost done, database mein save ho raha hai..."}
+                </p>
               </div>
             )}
+
+            {/* Post button */}
+            <button
+              onClick={handleUpload}
+              disabled={!caption.trim() || isUploading}
+              className={cn(
+                "w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all",
+                !caption.trim() || isUploading
+                  ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                  : "bg-gradient-to-r from-primary to-secondary text-black shadow-lg shadow-primary/30 active:scale-95"
+              )}
+            >
+              {isUploading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Upload ho raha hai...</>
+              ) : (
+                <><ChevronRight className="w-5 h-5" /> Post Karein</>
+              )}
+            </button>
+
+            <p className="text-center text-xs text-zinc-600">
+              Video post karke aap India Live ki{" "}
+              <span className="text-zinc-500">community guidelines</span> se agree karte hain
+            </p>
           </div>
-        )}
-
-        <input 
-          type="file" 
-          accept="video/*" 
-          className="hidden" 
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          data-testid="input-file"
-        />
-
-        <div className="space-y-2">
-          <Label htmlFor="caption" className="text-zinc-300 font-semibold">Caption</Label>
-          <Textarea
-            id="caption"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Write a caption... #trending"
-            className="bg-zinc-900 border-zinc-800 text-white min-h-[100px] resize-none focus-visible:ring-primary"
-            data-testid="input-caption"
-            disabled={isUploading}
-          />
         </div>
-      </main>
+      )}
+
+      <input
+        type="file"
+        accept="video/*"
+        className="hidden"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        data-testid="input-file"
+      />
     </div>
   );
 }

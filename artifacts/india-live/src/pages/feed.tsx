@@ -111,6 +111,7 @@ function VideoCard({ video }: { video: any }) {
         poster={video.thumbnail_url}
         loop
         playsInline
+        muted
         className="w-full h-full object-cover"
         onClick={handleTogglePlay}
         onDoubleClick={handleDoubleTap}
