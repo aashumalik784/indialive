@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import AdCard from "@/components/AdCard";
 
 interface LiveStream {
   username: string;
@@ -103,20 +102,12 @@ export default function Feed() {
     </div>
   );
 
-  const feedItems: Array<{ type: "video"; data: any } | { type: "ad" }> = [];
-  data.videos.forEach((v, i) => {
-    feedItems.push({ type: "video", data: v });
-    if ((i + 1) % 5 === 0) feedItems.push({ type: "ad" });
-  });
-
   return (
     <div className="h-[100dvh] w-full bg-black snap-y snap-mandatory overflow-y-scroll scrollbar-hide">
       <LiveBar />
-      {feedItems.map((item, idx) =>
-        item.type === "video"
-          ? <VideoCard key={item.data.id} video={item.data} />
-          : <AdCard key={`ad-${idx}`} />
-      )}
+      {data.videos.map((video) => (
+        <VideoCard key={video.id} video={video} />
+      ))}
       <BottomNav />
     </div>
   );
