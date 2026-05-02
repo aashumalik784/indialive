@@ -33,8 +33,12 @@ def update_profile():
 
     data = request.get_json()
     username = data.get("username", "").strip()
+    display_name = data.get("display_name", "").strip()
     bio = data.get("bio", "").strip()
     avatar_url = data.get("avatar_url", "").strip()
+
+    if display_name is not None:
+        current_user.display_name = display_name[:100] if display_name else None
 
     if username and username != current_user.username:
         if len(username) < 3:

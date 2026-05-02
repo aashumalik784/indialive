@@ -165,12 +165,12 @@ function MainMenu({ currentUser, setSection, onLogout }: any) {
 }
 
 function EditProfile({ currentUser, onDone }: { currentUser: any; onDone: () => void }) {
+  const [displayName, setDisplayName] = useState(currentUser.display_name || currentUser.username);
   const [username, setUsername] = useState(currentUser.username);
   const [bio, setBio] = useState(currentUser.bio || "");
   const [avatarUrl, setAvatarUrl] = useState(currentUser.avatar_url || "");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { login } = useAuth();
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -178,11 +178,15 @@ function EditProfile({ currentUser, onDone }: { currentUser: any; onDone: () => 
       const res = await apiRequest("/api/users/me", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, bio, avatar_url: avatarUrl }),
+        body: JSON.stringify({ display_name: displayName, username, bio, avatar_url: avatarUrl }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Error", description: data.error || "Update failed", variant: "destructive" });
+        return;
+      }
       localStorage.setItem("india_live_user", JSON.stringify(data.user));
-      toast({ title: "Profile updated!" });
+      toast({ title: "Profile update ho gaya!" });
       onDone();
       window.location.href = `/profile/${data.user.username}`;
     } catch (err: any) {
@@ -194,59 +198,78 @@ function EditProfile({ currentUser, onDone }: { currentUser: any; onDone: () => 
 
   return (
     <div className="p-5 space-y-5">
-      {/* Avatar preview */}
-      <div className="flex justify-center">
-        <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary">
-          <img
-            src={avatarUrl || `https://ui-avatars.com/api/?name=${username}&background=FF9933&color=000`}
-            alt="avatar"
-            className="w-full h-full object-cover"
-            onError={(e: any) => { e.target.src = `https://ui-avatars.com/api/?name=${username}&background=FF9933&color=000`; }}
+      {/* Avatar preview + change */}
+      <div className="flex flex-col items-center gap-3">
+        <div className="relative">
+          <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary shadow-lg shadow-primary/20">
+            <img
+              src={avatarUrl || `https://ui-avatars.com/api/?name=${displayName}&background=FF9933&color=000`}
+              alt="avatar"
+              className="w-full h-full object-cover"
+              onError={(e: any) => { e.target.src = `https://ui-avatars.com/api/?name=${displayName}&background=FF9933&color=000`; }}
+            />
+          </div>
+        </div>
+        <div className="w-full space-y-1.5">
+          <Label className="text-zinc-500 text-xs">Profile Photo URL</Label>
+          <Input
+            value={avatarUrl}
+            onChange={(e) => setAvatarUrl(e.target.value)}
+            placeholder="https://example.com/photo.jpg"
+            className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-primary text-sm"
           />
+          <p className="text-xs text-zinc-600">Apni photo ka link yahan paste karein</p>
         </div>
       </div>
 
+      <div className="h-px bg-zinc-900" />
+
       <div className="space-y-1.5">
-        <Label className="text-zinc-400 text-xs uppercase tracking-wide">Avatar URL</Label>
+        <Label className="text-zinc-400 text-xs font-semibold uppercase tracking-wide">Naam (Display Name)</Label>
         <Input
-          value={avatarUrl}
-          onChange={(e) => setAvatarUrl(e.target.value)}
-          placeholder="https://example.com/photo.jpg"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder="Apna pura naam"
+          maxLength={100}
           className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-primary"
         />
-        <p className="text-xs text-zinc-600">Kisi bhi image ka link paste karein</p>
+        <p className="text-xs text-zinc-600">Yeh naam aapki profile par dikhega (jaise Rahul Sharma)</p>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-zinc-400 text-xs uppercase tracking-wide">Username</Label>
-        <Input
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="username"
-          className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-primary"
-        />
+        <Label className="text-zinc-400 text-xs font-semibold uppercase tracking-wide">Username</Label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">@</span>
+          <Input
+            value={username}
+            onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+            placeholder="username"
+            className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-primary pl-7"
+          />
+        </div>
+        <p className="text-xs text-zinc-600">Sirf letters, numbers, _ aur . allowed hain</p>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-zinc-400 text-xs uppercase tracking-wide">Bio</Label>
+        <Label className="text-zinc-400 text-xs font-semibold uppercase tracking-wide">Bio</Label>
         <textarea
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder="Apne baare mein kuch batayein..."
           maxLength={300}
           rows={3}
-          className="w-full rounded-md bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <p className="text-xs text-zinc-600 text-right">{bio.length}/300</p>
       </div>
 
       <Button
         onClick={handleSave}
-        disabled={isLoading || !username.trim()}
-        className="w-full bg-primary text-black font-bold hover:bg-primary/90"
+        disabled={isLoading || !username.trim() || !displayName.trim()}
+        className="w-full bg-primary text-black font-bold hover:bg-primary/90 py-6 text-base rounded-xl"
       >
         {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
-        Save Changes
+        Save Karein
       </Button>
     </div>
   );

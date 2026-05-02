@@ -21,6 +21,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
+    display_name = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     avatar_url = db.Column(db.String(500), nullable=True)
@@ -46,6 +47,7 @@ class User(db.Model):
         data = {
             "id": self.id,
             "username": self.username,
+            "display_name": self.display_name or self.username,
             "email": self.email,
             "avatar_url": self.avatar_url,
             "bio": self.bio,

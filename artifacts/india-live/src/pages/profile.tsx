@@ -70,8 +70,9 @@ export default function Profile() {
             />
           </div>
 
-          <h2 className="text-xl font-bold mb-0.5">@{user.username}</h2>
-          {user.bio && <p className="text-sm text-zinc-400 text-center max-w-xs mt-1 mb-3">{user.bio}</p>}
+          <h2 className="text-xl font-bold mb-0">{user.display_name || user.username}</h2>
+          <p className="text-sm text-zinc-500 mb-1">@{user.username}</p>
+          {user.bio && <p className="text-sm text-zinc-400 text-center max-w-xs mt-1 mb-2">{user.bio}</p>}
 
           {/* Stats row */}
           <div className="flex gap-8 my-4">

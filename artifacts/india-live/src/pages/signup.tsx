@@ -1,18 +1,16 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "wouter";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, Eye, EyeOff, User2, Mail, Lock, AtSign } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function Signup() {
-  const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signup } = useAuth();
   const [, setLocation] = useLocation();
@@ -20,99 +18,140 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 6) {
+      toast({ title: "Password chhota hai", description: "Kam se kam 6 characters chahiye", variant: "destructive" });
+      return;
+    }
     setIsLoading(true);
     try {
-      await signup({ email, username, password });
-      toast({ title: "Account created successfully" });
+      await signup({ display_name: displayName, email, username, password });
+      toast({ title: "Account ban gaya! Swagat hai!" });
       setLocation("/");
     } catch (err: any) {
-      toast({ title: "Error signing up", description: err.message, variant: "destructive" });
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full bg-black flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md flex items-center justify-between mb-6">
-        <button
-          onClick={() => setLocation("/")}
-          className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
-          data-testid="button-back"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="text-sm">Back</span>
-        </button>
-        <Link href="/" className="text-primary font-bold text-xl tracking-tighter" data-testid="link-home">
-          INDIA<span className="text-secondary">LIVE</span>
-        </Link>
-        <div className="w-16" />
-      </div>
+    <div className="min-h-screen w-full bg-black flex flex-col">
+      {/* Top gradient bg */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 pointer-events-none" />
 
-      <Card className="w-full max-w-md bg-zinc-950 border-zinc-800">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-white">Create an account</CardTitle>
-          <CardDescription className="text-zinc-400">Join the movement</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-zinc-300">Email</Label>
-              <Input
-                id="email"
+      <div className="flex-1 flex flex-col items-center justify-center px-5 py-10 relative z-10">
+        {/* Logo */}
+        <div className="mb-8 flex flex-col items-center">
+          <div className="text-4xl font-black tracking-tighter mb-1">
+            <span className="text-primary">INDIA</span><span className="text-secondary">LIVE</span>
+          </div>
+          <p className="text-zinc-500 text-sm">India ka apna short video platform</p>
+        </div>
+
+        <div className="w-full max-w-sm">
+          <h1 className="text-2xl font-bold text-white mb-1">Account Banayein</h1>
+          <p className="text-zinc-500 text-sm mb-6">Free mein join karein</p>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {/* Display Name */}
+            <div className="relative">
+              <User2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                required
+                placeholder="Apna pura naam (jaise Rahul Sharma)"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder:text-zinc-600 text-sm pl-10 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+
+            {/* Username */}
+            <div className="relative">
+              <AtSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+                required
+                placeholder="Username (jaise rahul_sharma)"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder:text-zinc-600 text-sm pl-10 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 focus-visible:ring-primary"
-                data-testid="input-email"
-                placeholder="you@example.com"
+                placeholder="Email address"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder:text-zinc-600 text-sm pl-10 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-zinc-300">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 focus-visible:ring-primary"
-                data-testid="input-username"
-                placeholder="superstar"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-zinc-300">Password</Label>
-              <Input
-                id="password"
-                type="password"
+
+            {/* Password */}
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 focus-visible:ring-primary"
-                data-testid="input-password"
-                placeholder="••••••••"
+                placeholder="Password (kam se kam 6 characters)"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder:text-zinc-600 text-sm pl-10 pr-12 py-3.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
-            <Button
+
+            {/* Strength indicator */}
+            {password && (
+              <div className="flex gap-1">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-1 flex-1 rounded-full transition-all",
+                      password.length >= i * 4
+                        ? i === 1 ? "bg-red-500" : i === 2 ? "bg-yellow-500" : "bg-green-500"
+                        : "bg-zinc-800"
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+
+            <button
               type="submit"
-              className="w-full bg-primary text-black hover:bg-primary/90 font-bold"
-              disabled={isLoading}
-              data-testid="button-submit"
+              disabled={isLoading || !displayName.trim() || !username.trim() || !email.trim() || !password}
+              className={cn(
+                "w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all mt-2",
+                isLoading || !displayName.trim() || !username.trim() || !email.trim() || !password
+                  ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                  : "bg-gradient-to-r from-primary to-secondary text-black shadow-lg shadow-primary/30 active:scale-95"
+              )}
             >
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Sign Up
-            </Button>
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              {isLoading ? "Account ban raha hai..." : "Account Banayein"}
+            </button>
           </form>
-          <div className="mt-6 text-center text-sm text-zinc-400">
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline font-semibold" data-testid="link-login">
-              Log in
+
+          <div className="mt-6 text-center text-sm text-zinc-500">
+            Pehle se account hai?{" "}
+            <Link href="/login" className="text-primary font-semibold hover:underline">
+              Login Karein
             </Link>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

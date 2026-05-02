@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/api";
 export type User = {
   id: string;
   username: string;
+  display_name: string;
   email: string;
   avatar_url?: string;
   bio?: string;

@@ -27,7 +27,8 @@ def signup():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "Email already registered"}), 409
 
-    user = User(username=username, email=email)
+    display_name = data.get("display_name", "").strip()
+    user = User(username=username, email=email, display_name=display_name or username)
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
