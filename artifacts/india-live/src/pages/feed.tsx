@@ -4,8 +4,7 @@ import { Link } from "wouter";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Heart, MessageCircle, Share2, Music2,
-  Play, Pause, RefreshCw, VideoOff, Radio, Download,
-  Volume2, VolumeX
+  Play, Pause, RefreshCw, VideoOff, Download
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -70,9 +69,35 @@ function LiveBar() {
   );
 }
 
+function ExitDialog({ onStay, onExit }: { onStay: () => void; onExit: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-end">
+      <div className="w-full bg-zinc-900 rounded-t-3xl p-6 space-y-3 pb-10">
+        <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-4" />
+        <p className="text-white font-bold text-center text-lg">App band karna chahte hain?</p>
+        <p className="text-zinc-500 text-sm text-center">India Live se bahar jaana chahte hain?</p>
+        <div className="pt-2 space-y-2">
+          <button
+            onClick={onExit}
+            className="w-full py-3.5 bg-red-600 text-white font-bold rounded-2xl text-base"
+          >
+            Haan, Band Karein
+          </button>
+          <button
+            onClick={onStay}
+            className="w-full py-3.5 bg-zinc-800 text-white font-semibold rounded-2xl text-base"
+          >
+            Ruko, Wapas Jaao
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Feed() {
   const [activeTab, setActiveTab] = useState<"foryou" | "following">("foryou");
-  const [globalMuted, setGlobalMuted] = useState(true);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const { currentUser } = useAuth();
 
   const forYou = useVideos(1, 10);
@@ -81,6 +106,35 @@ export default function Feed() {
   const active = activeTab === "foryou" ? forYou : following;
   const { isLoading, isError, refetch } = active;
   const videos = active.data?.videos ?? [];
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      history.pushState(null, "", window.location.href);
+      setShowExitDialog(true);
+    };
+
+    history.pushState(null, "", window.location.href);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  const handleExit = () => {
+    window.close();
+    setTimeout(() => {
+      window.location.href = "about:blank";
+    }, 100);
+  };
 
   if (isLoading) return (
     <div className="h-screen w-full bg-black flex items-center justify-center">
@@ -152,26 +206,29 @@ export default function Feed() {
         </div>
       ) : (
         videos.map((video) => (
-          <VideoCard
-            key={video.id}
-            video={video}
-            globalMuted={globalMuted}
-            onToggleMute={() => setGlobalMuted(m => !m)}
-          />
+          <VideoCard key={video.id} video={video} />
         ))
       )}
 
       <BottomNav active="home" />
+
+      {showExitDialog && (
+        <ExitDialog
+          onStay={() => setShowExitDialog(false)}
+          onExit={handleExit}
+        />
+      )}
     </div>
   );
 }
 
-function VideoCard({ video, globalMuted, onToggleMute }: { video: any; globalMuted: boolean; onToggleMute: () => void }) {
+function VideoCard({ video }: { video: any }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
   const [showPlayIcon, setShowPlayIcon] = useState(false);
   const [iconFading, setIconFading] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const iconTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -183,7 +240,15 @@ function VideoCard({ video, globalMuted, onToggleMute }: { video: any; globalMut
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            videoRef.current?.play().catch(() => {});
+            const playPromise = videoRef.current?.play();
+            if (playPromise) {
+              playPromise.catch(() => {
+                if (videoRef.current) {
+                  videoRef.current.muted = true;
+                  videoRef.current.play().catch(() => {});
+                }
+              });
+            }
             setIsPlaying(true);
           } else {
             videoRef.current?.pause();
@@ -196,12 +261,6 @@ function VideoCard({ video, globalMuted, onToggleMute }: { video: any; globalMut
     if (containerRef.current) observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, []);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = globalMuted;
-    }
-  }, [globalMuted]);
 
   const showIconBriefly = useCallback(() => {
     setIconFading(false);
@@ -236,8 +295,6 @@ function VideoCard({ video, globalMuted, onToggleMute }: { video: any; globalMut
   };
 
   const shareUrl = `${window.location.origin}/video/${video.id}`;
-
-  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -274,7 +331,6 @@ function VideoCard({ video, globalMuted, onToggleMute }: { video: any; globalMut
         poster={video.thumbnail_url}
         loop
         playsInline
-        muted
         className="w-full h-full object-cover"
         onClick={handleTogglePlay}
         onDoubleClick={handleDoubleTap}
@@ -301,17 +357,6 @@ function VideoCard({ video, globalMuted, onToggleMute }: { video: any; globalMut
           </div>
         </div>
       )}
-
-      {/* Mute/Unmute button — top right */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
-        className="absolute top-14 right-3 z-20 w-9 h-9 rounded-full bg-black/50 backdrop-blur flex items-center justify-center"
-      >
-        {globalMuted
-          ? <VolumeX className="w-4 h-4 text-white" />
-          : <Volume2 className="w-4 h-4 text-white" />
-        }
-      </button>
 
       {/* Right side actions */}
       <div className="absolute right-3 bottom-24 flex flex-col gap-5 items-center z-10">
@@ -393,4 +438,3 @@ function VideoCard({ video, globalMuted, onToggleMute }: { video: any; globalMut
     </div>
   );
 }
-
