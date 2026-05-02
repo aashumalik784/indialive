@@ -38,7 +38,7 @@ export default function Settings() {
     <div className="min-h-screen bg-black text-white pb-8">
       <header className="sticky top-0 z-20 bg-black/95 backdrop-blur border-b border-zinc-900 flex items-center gap-3 px-4 h-14">
         <button
-          onClick={() => section === "main" ? setLocation(`/profile/${currentUser.username}`) : setSection("main")}
+          onClick={() => section === "main" ? setLocation("/account") : setSection("main")}
           className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />

@@ -4,7 +4,8 @@ import { Link } from "wouter";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Heart, MessageCircle, Share2, Music2,
-  Play, Pause, RefreshCw, VideoOff, Radio, Download
+  Play, Pause, RefreshCw, VideoOff, Radio, Download,
+  Volume2, VolumeX
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +72,7 @@ function LiveBar() {
 
 export default function Feed() {
   const [activeTab, setActiveTab] = useState<"foryou" | "following">("foryou");
+  const [globalMuted, setGlobalMuted] = useState(true);
   const { currentUser } = useAuth();
 
   const forYou = useVideos(1, 10);
@@ -149,7 +151,14 @@ export default function Feed() {
           )}
         </div>
       ) : (
-        videos.map((video) => <VideoCard key={video.id} video={video} />)
+        videos.map((video) => (
+          <VideoCard
+            key={video.id}
+            video={video}
+            globalMuted={globalMuted}
+            onToggleMute={() => setGlobalMuted(m => !m)}
+          />
+        ))
       )}
 
       <BottomNav active="home" />
@@ -157,7 +166,7 @@ export default function Feed() {
   );
 }
 
-function VideoCard({ video }: { video: any }) {
+function VideoCard({ video, globalMuted, onToggleMute }: { video: any; globalMuted: boolean; onToggleMute: () => void }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
   const [showPlayIcon, setShowPlayIcon] = useState(false);
@@ -187,6 +196,12 @@ function VideoCard({ video }: { video: any }) {
     if (containerRef.current) observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = globalMuted;
+    }
+  }, [globalMuted]);
 
   const showIconBriefly = useCallback(() => {
     setIconFading(false);
@@ -259,6 +274,7 @@ function VideoCard({ video }: { video: any }) {
         poster={video.thumbnail_url}
         loop
         playsInline
+        muted
         className="w-full h-full object-cover"
         onClick={handleTogglePlay}
         onDoubleClick={handleDoubleTap}
@@ -285,6 +301,17 @@ function VideoCard({ video }: { video: any }) {
           </div>
         </div>
       )}
+
+      {/* Mute/Unmute button — top right */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
+        className="absolute top-14 right-3 z-20 w-9 h-9 rounded-full bg-black/50 backdrop-blur flex items-center justify-center"
+      >
+        {globalMuted
+          ? <VolumeX className="w-4 h-4 text-white" />
+          : <Volume2 className="w-4 h-4 text-white" />
+        }
+      </button>
 
       {/* Right side actions */}
       <div className="absolute right-3 bottom-24 flex flex-col gap-5 items-center z-10">

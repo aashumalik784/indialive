@@ -1,19 +1,16 @@
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserVideos } from "@/hooks/use-api";
 import {
-  Settings, Edit3, LogOut, Play, Grid,
+  Settings, Edit3, Play, Grid,
   Heart, Users, Video, Bell, ChevronRight,
   UserPlus, Calendar, ArrowLeft
 } from "lucide-react";
-import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import BottomNav from "@/components/BottomNav";
 
 export default function AccountPage() {
-  const { currentUser, logout } = useAuth();
-  const [, setLocation] = useLocation();
-  const [showLogout, setShowLogout] = useState(false);
+  const { currentUser } = useAuth();
 
   const { data: videosData } = useUserVideos(currentUser?.id || "");
   const videos = videosData?.videos || [];
@@ -186,39 +183,13 @@ export default function AccountPage() {
         )}
       </div>
 
-      {/* Logout */}
-      <div className="px-4 pt-5 pb-2">
-        <button
-          onClick={() => setShowLogout(true)}
-          className="w-full py-3 border border-red-500/30 text-red-400 font-semibold rounded-2xl text-sm hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2"
-        >
-          <LogOut className="w-4 h-4" />
-          Logout
-        </button>
+      {/* Settings note */}
+      <div className="px-4 pt-3 pb-2">
+        <p className="text-center text-xs text-zinc-700">Logout ke liye Settings mein jaayein</p>
       </div>
 
       <BottomNav active="profile" />
 
-      {/* Logout confirm sheet */}
-      {showLogout && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end">
-          <div className="w-full bg-zinc-900 rounded-t-3xl p-6 space-y-3">
-            <p className="text-white font-bold text-center text-lg">Logout karna chahte hain?</p>
-            <button
-              onClick={() => { logout(); setLocation("/"); }}
-              className="w-full py-3.5 bg-red-600 text-white font-bold rounded-2xl"
-            >
-              Haan, Logout Karein
-            </button>
-            <button
-              onClick={() => setShowLogout(false)}
-              className="w-full py-3.5 bg-zinc-800 text-white font-semibold rounded-2xl"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
