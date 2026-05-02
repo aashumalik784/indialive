@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import ShareSheet from "@/components/ShareSheet";
 
 interface LiveStream {
   username: string;
@@ -162,6 +163,7 @@ function VideoCard({ video }: { video: any }) {
   const [showHeart, setShowHeart] = useState(false);
   const [showPlayIcon, setShowPlayIcon] = useState(false);
   const [iconFading, setIconFading] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const iconTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -230,17 +232,7 @@ function VideoCard({ video }: { video: any }) {
     setTimeout(() => setShowHeart(false), 1000);
   };
 
-  const handleShare = async () => {
-    const url = `${window.location.origin}/video/${video.id}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: video.caption, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast({ title: "Link copy ho gaya!", description: "Share karein jahan chahein" });
-      }
-    } catch {}
-  };
+  const shareUrl = `${window.location.origin}/video/${video.id}`;
 
   return (
     <div
@@ -317,13 +309,20 @@ function VideoCard({ video }: { video: any }) {
           <span className="text-white text-xs font-semibold drop-shadow-md">{video.comment_count}</span>
         </Link>
 
-        <button onClick={handleShare} className="flex flex-col items-center gap-1 group">
+        <button onClick={() => setShowShare(true)} className="flex flex-col items-center gap-1 group">
           <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
             <Share2 className="w-6 h-6 text-white" />
           </div>
           <span className="text-white text-xs font-semibold drop-shadow-md">Share</span>
         </button>
       </div>
+
+      <ShareSheet
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        url={shareUrl}
+        caption={video.caption}
+      />
 
       {/* Bottom info */}
       <div className="absolute bottom-0 left-0 w-full p-4 pb-20 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-0">

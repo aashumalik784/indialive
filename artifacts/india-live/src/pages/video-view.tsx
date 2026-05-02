@@ -2,8 +2,9 @@ import { useRoute } from "wouter";
 import { useVideo, useComments, useAddComment, useLikeVideo } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "wouter";
-import { ArrowLeft, Heart, MessageCircle, Share2, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Heart, Share2, Send, Loader2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import ShareSheet from "@/components/ShareSheet";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ export default function VideoView() {
   
   const [commentText, setCommentText] = useState("");
   const [isPlaying, setIsPlaying] = useState(true);
+  const [showShare, setShowShare] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -120,16 +122,7 @@ export default function VideoView() {
             <button
               className="flex items-center gap-2 text-zinc-300 hover:text-white"
               data-testid="button-share"
-              onClick={async () => {
-                const url = window.location.href;
-                try {
-                  if (navigator.share) {
-                    await navigator.share({ title: video.caption, url });
-                  } else {
-                    await navigator.clipboard.writeText(url);
-                  }
-                } catch {}
-              }}
+              onClick={() => setShowShare(true)}
             >
               <Share2 className="w-6 h-6" />
             </button>
@@ -190,6 +183,12 @@ export default function VideoView() {
           )}
         </div>
       </div>
+      <ShareSheet
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        url={`${window.location.origin}/video/${video.id}`}
+        caption={video.caption}
+      />
     </div>
   );
 }
