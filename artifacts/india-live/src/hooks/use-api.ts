@@ -139,6 +139,17 @@ export function useLikeVideo() {
           },
         };
       });
+      queryClient.setQueriesData({ queryKey: ["videos"] }, (old: any) => {
+        if (!old?.videos) return old;
+        return {
+          ...old,
+          videos: old.videos.map((v: any) =>
+            String(v.id) === String(videoId)
+              ? { ...v, liked_by_user: data.liked, like_count: data.like_count }
+              : v
+          ),
+        };
+      });
     },
   });
 }

@@ -11,9 +11,27 @@ type AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
+const STORAGE_KEY = "india_live_user";
+
+function getCachedUser(): User | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedUser(user: User | null) {
+  if (user) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  } else {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(getCachedUser);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -22,8 +40,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const res = await apiRequest("/api/auth/me");
         const data = await res.json();
         setCurrentUser(data.user);
-      } catch (err) {
+        setCachedUser(data.user);
+      } catch {
         setCurrentUser(null);
+        setCachedUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -39,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     const result = await res.json();
     setCurrentUser(result.user);
+    setCachedUser(result.user);
   };
 
   const signup = async (data: any) => {
@@ -49,11 +70,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     const result = await res.json();
     setCurrentUser(result.user);
+    setCachedUser(result.user);
   };
 
   const logout = async () => {
     await apiRequest("/api/auth/logout", { method: "POST" });
     setCurrentUser(null);
+    setCachedUser(null);
   };
 
   return (
