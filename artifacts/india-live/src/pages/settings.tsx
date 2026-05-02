@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, User2, Lock, LogOut, ChevronRight,
-  Check, Loader2, Trash2, Info, Shield
+  Check, Loader2, Trash2, Info, Shield, Camera, X
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -170,7 +170,43 @@ function EditProfile({ currentUser, onDone }: { currentUser: any; onDone: () => 
   const [bio, setBio] = useState(currentUser.bio || "");
   const [avatarUrl, setAvatarUrl] = useState(currentUser.avatar_url || "");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const imgInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Galat file", description: "Sirf image files allowed hain", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File badi hai", description: "10MB se chhota image chunein", variant: "destructive" });
+      return;
+    }
+    setLocalPreview(URL.createObjectURL(file));
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || ""}/api/users/me/avatar`,
+        { method: "POST", body: formData, credentials: "include" }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      setAvatarUrl(data.avatar_url);
+      localStorage.setItem("india_live_user", JSON.stringify(data.user));
+      toast({ title: "Photo upload ho gaya!" });
+    } catch (err: any) {
+      setLocalPreview(null);
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -196,30 +232,74 @@ function EditProfile({ currentUser, onDone }: { currentUser: any; onDone: () => 
     }
   };
 
+  const displayedAvatar = localPreview || avatarUrl
+    || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=FF9933&color=000`;
+
   return (
-    <div className="p-5 space-y-5">
-      {/* Avatar preview + change */}
-      <div className="flex flex-col items-center gap-3">
-        <div className="relative">
-          <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary shadow-lg shadow-primary/20">
+    <div className="p-5 space-y-6">
+      {/* Avatar picker */}
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wide">Profile Photo</p>
+
+        {/* Tappable avatar */}
+        <label
+          htmlFor="avatar-file-input"
+          className="relative cursor-pointer group select-none"
+        >
+          {/* Hidden file input fills entire avatar — works in WebView too */}
+          <input
+            id="avatar-file-input"
+            ref={imgInputRef}
+            type="file"
+            accept="image/*,image/jpeg,image/png,image/gif,image/webp,image/heic"
+            onChange={handleImageFile}
+            disabled={isUploadingPhoto}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              opacity: 0,
+              cursor: "pointer",
+              zIndex: 10,
+            }}
+          />
+          {/* Avatar image */}
+          <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-primary shadow-xl shadow-primary/20">
             <img
-              src={avatarUrl || `https://ui-avatars.com/api/?name=${displayName}&background=FF9933&color=000`}
+              src={displayedAvatar}
               alt="avatar"
               className="w-full h-full object-cover"
-              onError={(e: any) => { e.target.src = `https://ui-avatars.com/api/?name=${displayName}&background=FF9933&color=000`; }}
+              onError={(e: any) => {
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=FF9933&color=000`;
+              }}
             />
           </div>
-        </div>
-        <div className="w-full space-y-1.5">
-          <Label className="text-zinc-500 text-xs">Profile Photo URL</Label>
-          <Input
-            value={avatarUrl}
-            onChange={(e) => setAvatarUrl(e.target.value)}
-            placeholder="https://example.com/photo.jpg"
-            className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-primary text-sm"
-          />
-          <p className="text-xs text-zinc-600">Apni photo ka link yahan paste karein</p>
-        </div>
+          {/* Camera overlay */}
+          <div className={cn(
+            "absolute inset-0 rounded-full flex items-center justify-center transition-all duration-200",
+            isUploadingPhoto
+              ? "bg-black/60"
+              : "bg-black/0 group-active:bg-black/50"
+          )}>
+            {isUploadingPhoto ? (
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            ) : (
+              <div className="opacity-0 group-active:opacity-100 transition-opacity flex flex-col items-center gap-1">
+                <Camera className="w-7 h-7 text-white" />
+                <span className="text-white text-[10px] font-semibold">Change</span>
+              </div>
+            )}
+          </div>
+          {/* Camera badge */}
+          <div className="absolute bottom-1 right-1 w-8 h-8 bg-primary rounded-full border-2 border-black flex items-center justify-center z-0 pointer-events-none">
+            <Camera className="w-4 h-4 text-black" />
+          </div>
+        </label>
+
+        <p className="text-xs text-zinc-500">
+          {isUploadingPhoto ? "Upload ho raha hai..." : "Tap karein photo badalne ke liye"}
+        </p>
       </div>
 
       <div className="h-px bg-zinc-900" />
@@ -233,7 +313,7 @@ function EditProfile({ currentUser, onDone }: { currentUser: any; onDone: () => 
           maxLength={100}
           className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-primary"
         />
-        <p className="text-xs text-zinc-600">Yeh naam aapki profile par dikhega (jaise Rahul Sharma)</p>
+        <p className="text-xs text-zinc-600">Profile par dikhne wala naam (jaise Rahul Sharma)</p>
       </div>
 
       <div className="space-y-1.5">
@@ -265,7 +345,7 @@ function EditProfile({ currentUser, onDone }: { currentUser: any; onDone: () => 
 
       <Button
         onClick={handleSave}
-        disabled={isLoading || !username.trim() || !displayName.trim()}
+        disabled={isLoading || isUploadingPhoto || !username.trim() || !displayName.trim()}
         className="w-full bg-primary text-black font-bold hover:bg-primary/90 py-6 text-base rounded-xl"
       >
         {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}

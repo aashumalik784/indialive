@@ -1,3 +1,6 @@
+import os
+import cloudinary
+import cloudinary.uploader
 from flask import Blueprint, jsonify, session, request
 from models import db, User
 
@@ -79,6 +82,52 @@ def change_password():
     current_user.set_password(new_password)
     db.session.commit()
     return jsonify({"message": "Password changed successfully"}), 200
+
+
+def configure_cloudinary():
+    cloudinary.config(
+        cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME", ""),
+        api_key=os.environ.get("CLOUDINARY_API_KEY", ""),
+        api_secret=os.environ.get("CLOUDINARY_API_SECRET", ""),
+        secure=True,
+    )
+
+
+@users_bp.route("/api/users/me/avatar", methods=["POST"])
+def upload_avatar():
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({"error": "Authentication required"}), 401
+
+    if "avatar" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files["avatar"]
+    if not file.filename:
+        return jsonify({"error": "Empty filename"}), 400
+
+    allowed = {"jpg", "jpeg", "png", "gif", "webp", "heic", "heif"}
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in allowed:
+        return jsonify({"error": "Sirf image files allowed hain (JPG, PNG, GIF, WebP)"}), 400
+
+    try:
+        configure_cloudinary()
+        result = cloudinary.uploader.upload(
+            file,
+            folder="india_live/avatars",
+            public_id=f"user_{current_user.id}",
+            overwrite=True,
+            transformation=[
+                {"width": 400, "height": 400, "crop": "fill", "gravity": "face"},
+            ],
+        )
+        avatar_url = result["secure_url"]
+        current_user.avatar_url = avatar_url
+        db.session.commit()
+        return jsonify({"avatar_url": avatar_url, "user": current_user.to_dict()}), 200
+    except Exception as e:
+        return jsonify({"error": f"Upload failed: {str(e)}"}), 500
 
 
 @users_bp.route("/api/users/me/delete", methods=["DELETE"])
