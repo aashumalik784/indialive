@@ -135,6 +135,9 @@ function VideoCard({ video }: { video: any }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = true;
+    }
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -216,7 +219,6 @@ function VideoCard({ video }: { video: any }) {
         poster={video.thumbnail_url}
         loop
         playsInline
-        muted
         className="w-full h-full object-cover"
         onClick={handleTogglePlay}
         onDoubleClick={handleDoubleTap}

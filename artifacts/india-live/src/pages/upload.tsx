@@ -145,12 +145,12 @@ export default function Upload() {
       {/* Step 1: Select Video */}
       {step === 1 && (
         <div className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
-          {/* Big upload zone */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full max-w-xs aspect-[9/16] max-h-[55vh] relative rounded-3xl overflow-hidden border-2 border-dashed border-zinc-700 hover:border-primary/60 transition-all duration-300 group bg-zinc-950 flex flex-col items-center justify-center gap-4"
+          {/* Big upload zone — native label so mobile file picker always opens */}
+          <label
+            htmlFor="video-file-input"
+            className="w-full max-w-xs aspect-[9/16] max-h-[55vh] relative rounded-3xl overflow-hidden border-2 border-dashed border-zinc-700 active:border-primary/80 transition-all duration-300 group bg-zinc-950 flex flex-col items-center justify-center gap-4 cursor-pointer select-none"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 opacity-0 group-active:opacity-100 transition-opacity" />
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30 group-active:scale-95 transition-transform">
               <Video className="w-10 h-10 text-black" />
             </div>
@@ -163,7 +163,7 @@ export default function Upload() {
                 <span key={f} className="text-xs bg-zinc-900 border border-zinc-800 text-zinc-500 px-2 py-0.5 rounded-full">{f}</span>
               ))}
             </div>
-          </button>
+          </label>
 
           {/* Tips */}
           <div className="w-full max-w-xs space-y-2">
@@ -308,8 +308,9 @@ export default function Upload() {
       )}
 
       <input
+        id="video-file-input"
         type="file"
-        accept="video/*"
+        accept="video/*,video/mp4,video/quicktime,video/webm,video/x-msvideo"
         className="hidden"
         ref={fileInputRef}
         onChange={handleFileChange}
