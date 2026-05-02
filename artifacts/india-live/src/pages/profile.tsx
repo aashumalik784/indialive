@@ -1,7 +1,7 @@
 import { useRoute } from "wouter";
 import { useUserProfile, useUserVideos } from "@/hooks/use-api";
 import { Link } from "wouter";
-import { ArrowLeft, Grip, Heart, Lock, LogOut } from "lucide-react";
+import { ArrowLeft, Grip, Heart, Lock, LogOut, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 

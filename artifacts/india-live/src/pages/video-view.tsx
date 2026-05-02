@@ -117,7 +117,20 @@ export default function VideoView() {
               <Heart className={cn("w-6 h-6", video.liked_by_user ? "fill-primary text-primary" : "")} />
               <span className="font-semibold">{video.like_count}</span>
             </button>
-            <button className="flex items-center gap-2 text-zinc-300 hover:text-white" data-testid="button-share">
+            <button
+              className="flex items-center gap-2 text-zinc-300 hover:text-white"
+              data-testid="button-share"
+              onClick={async () => {
+                const url = window.location.href;
+                try {
+                  if (navigator.share) {
+                    await navigator.share({ title: video.caption, url });
+                  } else {
+                    await navigator.clipboard.writeText(url);
+                  }
+                } catch {}
+              }}
+            >
               <Share2 className="w-6 h-6" />
             </button>
           </div>
