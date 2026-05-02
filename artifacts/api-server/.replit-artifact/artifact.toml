@@ -7,7 +7,7 @@ id = "3B4_FFSkEVBkAeYMFRJ2e"
 [[services]]
 localPort = 8080
 name = "Flask API"
-paths = ["/api"]
+paths = ["/api", "/socket.io"]
 
 [services.development]
 run = "bash -c 'cd /home/runner/workspace/artifacts/flask-api && python app.py'"
@@ -18,7 +18,7 @@ run = "bash -c 'cd /home/runner/workspace/artifacts/flask-api && python app.py'"
 args = ["pip", "install", "-r", "/home/runner/workspace/artifacts/flask-api/requirements.txt"]
 
 [services.production.run]
-args = ["bash", "-c", "cd /home/runner/workspace/artifacts/flask-api && gunicorn -w 4 --timeout 600 --graceful-timeout 30 -b 0.0.0.0:8080 'app:create_app()'"]
+args = ["bash", "-c", "cd /home/runner/workspace/artifacts/flask-api && gunicorn -k eventlet -w 1 --timeout 600 --graceful-timeout 30 -b 0.0.0.0:8080 'app:create_app()'"]
 
 [services.production.health.startup]
 path = "/api/healthz"

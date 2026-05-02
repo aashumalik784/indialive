@@ -3,12 +3,14 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
 from models import db
+from extensions import socketio
 
 from routes.auth import auth_bp
 from routes.videos import videos_bp
 from routes.engagement import engagement_bp
 from routes.users import users_bp
 from routes.search import search_bp
+from routes.live import live_bp
 
 
 def create_app():
@@ -24,6 +26,9 @@ def create_app():
     app.register_blueprint(engagement_bp)
     app.register_blueprint(users_bp)
     app.register_blueprint(search_bp)
+    app.register_blueprint(live_bp)
+
+    socketio.init_app(app)
 
     @app.route("/api/healthz")
     def healthz():
@@ -31,7 +36,6 @@ def create_app():
 
     @app.route("/api/cloudinary/test")
     def cloudinary_test():
-        import os
         cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME", "")
         api_key = os.environ.get("CLOUDINARY_API_KEY", "")
         api_secret = os.environ.get("CLOUDINARY_API_SECRET", "")
@@ -67,4 +71,4 @@ def create_app():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app = create_app()
-    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_ENV") == "development")
+    socketio.run(app, host="0.0.0.0", port=port, debug=os.environ.get("FLASK_ENV") == "development")

@@ -5,10 +5,69 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Heart, MessageCircle, Share2, Music2,
   Play, Pause, Search, User2, Home,
-  Volume2, VolumeX, RefreshCw, VideoOff
+  Volume2, VolumeX, RefreshCw, VideoOff, Radio
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import AdCard from "@/components/AdCard";
+
+interface LiveStream {
+  username: string;
+  avatar_url: string;
+  viewer_count: number;
+  title: string;
+}
+
+function LiveBar() {
+  const [streams, setStreams] = useState<LiveStream[]>([]);
+  const baseUrl = import.meta.env.VITE_API_URL || "";
+
+  useEffect(() => {
+    const fetchStreams = () => {
+      fetch(`${baseUrl}/api/live/streams`, { credentials: "include" })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.streams) setStreams(d.streams); })
+        .catch(() => {});
+    };
+    fetchStreams();
+    const interval = setInterval(fetchStreams, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (streams.length === 0) return null;
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-40 bg-black/90 backdrop-blur border-b border-zinc-900 px-3 py-2">
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-1 text-red-500 flex-shrink-0 mr-1">
+          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-xs font-bold">LIVE</span>
+        </div>
+        {streams.map((stream) => (
+          <Link
+            key={stream.username}
+            href={`/live/${stream.username}`}
+            className="flex items-center gap-1.5 bg-zinc-900 border border-red-500/30 rounded-full pl-0.5 pr-3 py-0.5 flex-shrink-0"
+          >
+            <div className="relative">
+              <div className="w-7 h-7 rounded-full overflow-hidden border border-red-500">
+                <img
+                  src={stream.avatar_url || `https://ui-avatars.com/api/?name=${stream.username}&background=FF9933&color=000`}
+                  alt={stream.username}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border border-black flex items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-white rounded-full" />
+              </div>
+            </div>
+            <span className="text-white text-xs font-semibold">{stream.username}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Feed() {
   const { data, isLoading, isError, refetch } = useVideos(1, 10);
@@ -44,11 +103,20 @@ export default function Feed() {
     </div>
   );
 
+  const feedItems: Array<{ type: "video"; data: any } | { type: "ad" }> = [];
+  data.videos.forEach((v, i) => {
+    feedItems.push({ type: "video", data: v });
+    if ((i + 1) % 5 === 0) feedItems.push({ type: "ad" });
+  });
+
   return (
     <div className="h-[100dvh] w-full bg-black snap-y snap-mandatory overflow-y-scroll scrollbar-hide">
-      {data.videos.map((video) => (
-        <VideoCard key={video.id} video={video} />
-      ))}
+      <LiveBar />
+      {feedItems.map((item, idx) =>
+        item.type === "video"
+          ? <VideoCard key={item.data.id} video={item.data} />
+          : <AdCard key={`ad-${idx}`} />
+      )}
       <BottomNav />
     </div>
   );
@@ -176,7 +244,7 @@ function VideoCard({ video }: { video: any }) {
         </div>
       )}
 
-      {/* Mute/Unmute button — top right */}
+      {/* Mute/Unmute — top right */}
       <button
         onClick={handleToggleMute}
         className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center"
@@ -199,15 +267,9 @@ function VideoCard({ video }: { video: any }) {
           </div>
         </Link>
 
-        <button
-          onClick={() => likeVideo(String(video.id))}
-          className="flex flex-col items-center gap-1 group"
-        >
+        <button onClick={() => likeVideo(String(video.id))} className="flex flex-col items-center gap-1 group">
           <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
-            <Heart className={cn(
-              "w-7 h-7 transition-colors",
-              video.liked_by_user ? "fill-red-500 text-red-500" : "text-white"
-            )} />
+            <Heart className={cn("w-7 h-7 transition-colors", video.liked_by_user ? "fill-red-500 text-red-500" : "text-white")} />
           </div>
           <span className="text-white text-xs font-semibold drop-shadow-md">{video.like_count}</span>
         </button>
@@ -229,10 +291,7 @@ function VideoCard({ video }: { video: any }) {
 
       {/* Bottom info */}
       <div className="absolute bottom-0 left-0 w-full p-4 pb-20 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-0">
-        <Link
-          href={`/profile/${video.author.username}`}
-          className="flex items-center gap-2 mb-2 pointer-events-auto w-fit"
-        >
+        <Link href={`/profile/${video.author.username}`} className="flex items-center gap-2 mb-2 pointer-events-auto w-fit">
           <div className="w-8 h-8 rounded-full border border-primary overflow-hidden flex-shrink-0">
             <img
               src={video.author.avatar_url || `https://ui-avatars.com/api/?name=${video.author.username}&background=FF9933&color=000`}
@@ -268,6 +327,10 @@ function BottomNav() {
         <div className="w-10 h-6 bg-white rounded-lg flex items-center justify-center">
           <span className="text-black text-xl leading-none font-bold">+</span>
         </div>
+      </Link>
+      <Link href={currentUser ? `/go-live` : "/login"} className="flex flex-col items-center gap-0.5 text-red-500 hover:text-red-400 transition-colors" data-testid="nav-live">
+        <Radio className="w-5 h-5" />
+        <span className="text-[10px] font-semibold">Live</span>
       </Link>
       <Link href={currentUser ? `/profile/${currentUser.username}` : "/login"} className="flex flex-col items-center gap-0.5 text-zinc-400 hover:text-white transition-colors" data-testid="nav-profile">
         <User2 className="w-5 h-5" />

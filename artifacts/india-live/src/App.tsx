@@ -13,6 +13,8 @@ import Profile from "@/pages/profile";
 import VideoView from "@/pages/video-view";
 import SearchPage from "@/pages/search";
 import Settings from "@/pages/settings";
+import GoLive from "@/pages/go-live";
+import LiveWatch from "@/pages/live-watch";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +35,8 @@ function Router() {
       <Route path="/profile/:username" component={Profile} />
       <Route path="/settings" component={Settings} />
       <Route path="/video/:id" component={VideoView} />
+      <Route path="/go-live" component={GoLive} />
+      <Route path="/live/:username" component={LiveWatch} />
       <Route component={NotFound} />
     </Switch>
   );
