@@ -66,7 +66,7 @@ export default function BottomNav({ active }: { active: Tab }) {
       </Link>
 
       <Link
-        href={currentUser ? `/profile/${currentUser.username}` : "/login"}
+        href={currentUser ? "/account" : "/login"}
         className={cn(
           "flex flex-col items-center gap-1 transition-colors",
           active === "profile" ? "text-primary" : "text-zinc-400 hover:text-white"
@@ -77,7 +77,7 @@ export default function BottomNav({ active }: { active: Tab }) {
         ) : (
           <User2 className="w-5 h-5" />
         )}
-        <span className="text-[10px] font-semibold">Profile</span>
+        <span className="text-[10px] font-semibold">Account</span>
       </Link>
     </div>
   );

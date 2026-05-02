@@ -17,6 +17,7 @@ import GoLive from "@/pages/go-live";
 import LiveWatch from "@/pages/live-watch";
 import NotificationsPage from "@/pages/notifications";
 import HashtagPage from "@/pages/hashtag";
+import AccountPage from "@/pages/account";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/live/:username" component={LiveWatch} />
       <Route path="/notifications" component={NotificationsPage} />
       <Route path="/hashtag/:tag" component={HashtagPage} />
+      <Route path="/account" component={AccountPage} />
       <Route component={NotFound} />
     </Switch>
   );
