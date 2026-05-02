@@ -5,6 +5,17 @@ from werkzeug.security import generate_password_hash, check_password_hash
 db = SQLAlchemy()
 
 
+class Follow(db.Model):
+    __tablename__ = "follows"
+
+    id = db.Column(db.Integer, primary_key=True)
+    follower_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    following_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (db.UniqueConstraint("follower_id", "following_id", name="unique_follow"),)
+
+
 class User(db.Model):
     __tablename__ = "users"
 
@@ -19,6 +30,8 @@ class User(db.Model):
     videos = db.relationship("Video", backref="author", lazy=True, cascade="all, delete-orphan")
     likes = db.relationship("Like", backref="user", lazy=True, cascade="all, delete-orphan")
     comments = db.relationship("Comment", backref="author", lazy=True, cascade="all, delete-orphan")
+    following = db.relationship("Follow", foreign_keys="Follow.follower_id", backref="follower", lazy="dynamic", cascade="all, delete-orphan")
+    followers = db.relationship("Follow", foreign_keys="Follow.following_id", backref="following_user", lazy="dynamic", cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -26,8 +39,11 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def to_dict(self):
-        return {
+    def is_following(self, user):
+        return self.following.filter_by(following_id=user.id).first() is not None
+
+    def to_dict(self, current_user=None):
+        data = {
             "id": self.id,
             "username": self.username,
             "email": self.email,
@@ -35,7 +51,13 @@ class User(db.Model):
             "bio": self.bio,
             "created_at": self.created_at.isoformat(),
             "video_count": len(self.videos),
+            "follower_count": self.followers.count(),
+            "following_count": self.following.count(),
+            "is_following": False,
         }
+        if current_user and current_user.id != self.id:
+            data["is_following"] = self.is_following(current_user) if False else current_user.is_following(self)
+        return data
 
 
 class Video(db.Model):

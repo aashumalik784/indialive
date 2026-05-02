@@ -8,6 +8,9 @@ export type User = {
   avatar_url?: string;
   bio?: string;
   video_count: number;
+  follower_count: number;
+  following_count: number;
+  is_following: boolean;
   created_at: string;
 };
 
@@ -117,6 +120,66 @@ export function useAddComment() {
     onSuccess: (data, { videoId }) => {
       queryClient.invalidateQueries({ queryKey: ["videos", videoId, "comments"] });
     },
+  });
+}
+
+export function useFollowingFeed(page = 1, perPage = 10) {
+  return useQuery({
+    queryKey: ["feed", "following", page],
+    queryFn: async () => {
+      const res = await apiRequest(`/api/feed/following?page=${page}&per_page=${perPage}`);
+      return res.json() as Promise<{
+        videos: Video[];
+        total: number;
+        has_next: boolean;
+      }>;
+    },
+  });
+}
+
+export function useFollowUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (username: string) => {
+      const res = await apiRequest(`/api/users/${username}/follow`, { method: "POST" });
+      return res.json() as Promise<{ is_following: boolean; follower_count: number }>;
+    },
+    onSuccess: (data, username) => {
+      queryClient.setQueriesData({ queryKey: ["users", username] }, (old: any) => {
+        if (!old?.user) return old;
+        return {
+          ...old,
+          user: {
+            ...old.user,
+            is_following: data.is_following,
+            follower_count: data.follower_count,
+          },
+        };
+      });
+      queryClient.invalidateQueries({ queryKey: ["feed", "following"] });
+    },
+  });
+}
+
+export function useUserFollowers(username: string) {
+  return useQuery({
+    queryKey: ["users", username, "followers"],
+    queryFn: async () => {
+      const res = await apiRequest(`/api/users/${username}/followers`);
+      return res.json() as Promise<{ users: User[]; total: number }>;
+    },
+    enabled: !!username,
+  });
+}
+
+export function useUserFollowing(username: string) {
+  return useQuery({
+    queryKey: ["users", username, "following"],
+    queryFn: async () => {
+      const res = await apiRequest(`/api/users/${username}/following`);
+      return res.json() as Promise<{ users: User[]; total: number }>;
+    },
+    enabled: !!username,
   });
 }
 

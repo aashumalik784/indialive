@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useVideos, useLikeVideo } from "@/hooks/use-api";
+import { useVideos, useFollowingFeed, useLikeVideo } from "@/hooks/use-api";
 import { Link } from "wouter";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
