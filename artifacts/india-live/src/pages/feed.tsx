@@ -69,7 +69,15 @@ function LiveBar() {
 }
 
 export default function Feed() {
-  const { data, isLoading, isError, refetch } = useVideos(1, 10);
+  const [activeTab, setActiveTab] = useState<"foryou" | "following">("foryou");
+  const { currentUser } = useAuth();
+
+  const forYou = useVideos(1, 10);
+  const following = useFollowingFeed(1, 10);
+
+  const active = activeTab === "foryou" ? forYou : following;
+  const { isLoading, isError, refetch } = active;
+  const videos = active.data?.videos ?? [];
 
   if (isLoading) return (
     <div className="h-screen w-full bg-black flex items-center justify-center">
@@ -81,33 +89,68 @@ export default function Feed() {
     <div className="h-screen w-full bg-black flex flex-col items-center justify-center gap-4 text-white">
       <RefreshCw className="w-10 h-10 text-zinc-600" />
       <p className="text-zinc-400">Videos load nahi ho sakin</p>
-      <button
-        onClick={() => refetch()}
-        className="px-6 py-2 bg-primary text-black font-bold rounded-full text-sm"
-      >
+      <button onClick={() => refetch()} className="px-6 py-2 bg-primary text-black font-bold rounded-full text-sm">
         Dobara Try Karein
       </button>
-    </div>
-  );
-
-  if (!data?.videos || data.videos.length === 0) return (
-    <div className="h-screen w-full bg-black flex flex-col items-center justify-center gap-4 text-white pb-16">
-      <VideoOff className="w-12 h-12 text-zinc-700" />
-      <p className="text-zinc-500 font-semibold">Abhi koi video nahi hai</p>
-      <p className="text-zinc-700 text-sm">Pehle video upload karein!</p>
-      <Link href="/upload" className="px-6 py-2 bg-primary text-black font-bold rounded-full text-sm mt-2">
-        Video Upload Karein
-      </Link>
-      <BottomNav />
     </div>
   );
 
   return (
     <div className="h-[100dvh] w-full bg-black snap-y snap-mandatory overflow-y-scroll scrollbar-hide">
       <LiveBar />
-      {data.videos.map((video) => (
-        <VideoCard key={video.id} video={video} />
-      ))}
+
+      {/* For You / Following tabs */}
+      <div className="fixed top-0 left-0 right-0 z-30 flex justify-center items-center gap-6 pt-3 pb-2 pointer-events-none">
+        <div className="flex gap-6 bg-black/30 backdrop-blur-md rounded-full px-5 py-1.5 pointer-events-auto border border-white/10">
+          <button
+            onClick={() => setActiveTab("foryou")}
+            className={cn(
+              "text-sm font-bold transition-all",
+              activeTab === "foryou" ? "text-white" : "text-white/40"
+            )}
+          >
+            For You
+          </button>
+          <button
+            onClick={() => {
+              if (!currentUser) return;
+              setActiveTab("following");
+            }}
+            className={cn(
+              "text-sm font-bold transition-all",
+              activeTab === "following" ? "text-white" : "text-white/40",
+              !currentUser && "opacity-40 cursor-not-allowed"
+            )}
+          >
+            Following
+          </button>
+        </div>
+      </div>
+
+      {videos.length === 0 ? (
+        <div className="h-[100dvh] snap-start flex flex-col items-center justify-center gap-4 text-white px-6 pb-20">
+          <VideoOff className="w-12 h-12 text-zinc-700" />
+          {activeTab === "following" ? (
+            <>
+              <p className="text-zinc-400 font-semibold text-center">Aapne abhi kisi ko follow nahi kiya</p>
+              <p className="text-zinc-600 text-sm text-center">Creators ko follow karein unki videos yahan dikhne ke liye</p>
+              <Link href="/search" className="px-6 py-2 bg-primary text-black font-bold rounded-full text-sm mt-2">
+                Creators Dhundein
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="text-zinc-500 font-semibold">Abhi koi video nahi hai</p>
+              <Link href="/upload" className="px-6 py-2 bg-primary text-black font-bold rounded-full text-sm">
+                Pehla Video Upload Karein
+              </Link>
+            </>
+          )}
+        </div>
+      ) : (
+        videos.map((video) => <VideoCard key={video.id} video={video} />)
+      )}
+
       <BottomNav />
     </div>
   );
