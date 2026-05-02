@@ -1,7 +1,7 @@
 import { useRoute } from "wouter";
 import { useUserProfile, useUserVideos } from "@/hooks/use-api";
 import { Link } from "wouter";
-import { ArrowLeft, Grip, Heart, Lock, LogOut, Loader2, Search, User2, Home } from "lucide-react";
+import { ArrowLeft, Grip, Heart, Lock, Loader2, Search, User2, Home, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
@@ -39,11 +39,13 @@ export default function Profile() {
         </Link>
         <h1 className="text-lg font-bold">{user.username}</h1>
         {isOwnProfile ? (
-          <Button variant="ghost" size="icon" onClick={() => logout()} data-testid="button-logout">
-            <LogOut className="w-5 h-5 text-zinc-400" />
-          </Button>
+          <Link href="/settings">
+            <Button variant="ghost" size="icon" data-testid="button-settings">
+              <Settings className="w-5 h-5 text-zinc-400" />
+            </Button>
+          </Link>
         ) : (
-          <div className="w-6" /> // spacer
+          <div className="w-9" />
         )}
       </header>
 

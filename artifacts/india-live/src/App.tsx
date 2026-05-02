@@ -12,6 +12,7 @@ import Signup from "@/pages/signup";
 import Profile from "@/pages/profile";
 import VideoView from "@/pages/video-view";
 import SearchPage from "@/pages/search";
+import Settings from "@/pages/settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/profile/:username" component={Profile} />
+      <Route path="/settings" component={Settings} />
       <Route path="/video/:id" component={VideoView} />
       <Route component={NotFound} />
     </Switch>
