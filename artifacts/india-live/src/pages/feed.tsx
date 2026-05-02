@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useVideos, useLikeVideo } from "@/hooks/use-api";
 import { Link } from "wouter";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Heart, MessageCircle, Share2, Music2, Play, Pause, Search, User2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, Music2, Play, Pause, Search, User2, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
