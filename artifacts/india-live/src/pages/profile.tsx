@@ -1,8 +1,9 @@
 import { useRoute, Link } from "wouter";
-import { useUserProfile, useUserVideos, useFollowUser } from "@/hooks/use-api";
+import { useUserProfile, useUserVideos, useFollowUser, useTogglePin } from "@/hooks/use-api";
 import {
   ArrowLeft, Grip, Heart, Loader2,
-  User2, Settings, UserCheck, UserPlus
+  User2, Settings, UserCheck, UserPlus,
+  MessageCircle, TrendingUp, Bookmark, Pin
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -16,8 +17,10 @@ export default function Profile() {
   const { data: profileData, isLoading: profileLoading } = useUserProfile(username || "");
   const { data: videosData, isLoading: videosLoading } = useUserVideos(profileData?.user?.id || "");
   const { mutate: toggleFollow, isPending: followPending } = useFollowUser();
+  const { mutate: togglePin } = useTogglePin();
   const { currentUser, logout } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState<"videos" | "pinned">("videos");
 
   const isOwnProfile = currentUser?.username === username;
 
@@ -40,7 +43,8 @@ export default function Profile() {
   }
 
   const user = profileData.user;
-  const videos = videosData?.videos || [];
+  const allVideos = videosData?.videos || [];
+  const videos = activeTab === "pinned" ? allVideos.filter((v: any) => v.pinned) : allVideos;
 
   return (
     <div className="min-h-screen bg-black text-white pb-20">
@@ -93,19 +97,35 @@ export default function Profile() {
 
           {/* Action buttons */}
           {isOwnProfile ? (
-            <div className="flex gap-2 w-full max-w-xs">
-              <Link
-                href="/settings"
-                className="flex-1 py-2 rounded-xl border border-zinc-700 text-white text-sm font-semibold text-center hover:bg-zinc-900 transition-colors"
-              >
-                Edit Profile
-              </Link>
-              <button
-                onClick={() => setShowLogoutConfirm(true)}
-                className="px-4 py-2 rounded-xl border border-zinc-800 text-zinc-400 text-sm font-semibold hover:border-red-500/40 hover:text-red-400 transition-colors"
-              >
-                Logout
-              </button>
+            <div className="flex flex-col gap-2 w-full max-w-xs">
+              <div className="flex gap-2">
+                <Link
+                  href="/settings"
+                  className="flex-1 py-2 rounded-xl border border-zinc-700 text-white text-sm font-semibold text-center hover:bg-zinc-900 transition-colors"
+                >
+                  Edit Profile
+                </Link>
+                <Link
+                  href="/analytics"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-700 text-primary text-sm font-semibold hover:bg-zinc-900 transition-colors"
+                >
+                  <TrendingUp className="w-4 h-4" /> Analytics
+                </Link>
+              </div>
+              <div className="flex gap-2">
+                <Link
+                  href="/bookmarks"
+                  className="flex-1 py-2 rounded-xl border border-zinc-800 text-zinc-400 text-sm font-semibold text-center hover:bg-zinc-900 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Bookmark className="w-4 h-4" /> Saved
+                </Link>
+                <button
+                  onClick={() => setShowLogoutConfirm(true)}
+                  className="px-4 py-2 rounded-xl border border-zinc-800 text-zinc-400 text-sm font-semibold hover:border-red-500/40 hover:text-red-400 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           ) : currentUser ? (
             <div className="flex gap-2 w-full max-w-xs">
@@ -127,9 +147,12 @@ export default function Profile() {
                   <><UserPlus className="w-4 h-4" /> Follow Karein</>
                 )}
               </button>
-              <button className="px-4 py-2 rounded-xl border border-zinc-700 text-white text-sm font-semibold hover:bg-zinc-900 transition-colors">
-                Message
-              </button>
+              <Link
+                href={`/conversation/${user.id}`}
+                className="px-4 py-2 rounded-xl border border-zinc-700 text-white text-sm font-semibold hover:bg-zinc-900 transition-colors flex items-center gap-1.5"
+              >
+                <MessageCircle className="w-4 h-4" /> Message
+              </Link>
             </div>
           ) : (
             <Link
@@ -143,12 +166,18 @@ export default function Profile() {
 
         {/* Tabs */}
         <div className="flex w-full border-b border-zinc-900 mt-2">
-          <div className="flex-1 flex justify-center py-3 border-b-2 border-primary">
-            <Grip className="w-5 h-5 text-primary" />
-          </div>
-          <div className="flex-1 flex justify-center py-3">
-            <Heart className="w-5 h-5 text-zinc-600" />
-          </div>
+          <button
+            onClick={() => setActiveTab("videos")}
+            className={cn("flex-1 flex justify-center py-3 border-b-2 transition-colors", activeTab === "videos" ? "border-primary" : "border-transparent")}
+          >
+            <Grip className={cn("w-5 h-5", activeTab === "videos" ? "text-primary" : "text-zinc-600")} />
+          </button>
+          <button
+            onClick={() => setActiveTab("pinned")}
+            className={cn("flex-1 flex justify-center py-3 border-b-2 transition-colors", activeTab === "pinned" ? "border-primary" : "border-transparent")}
+          >
+            <Pin className={cn("w-5 h-5", activeTab === "pinned" ? "text-primary" : "text-zinc-600")} />
+          </button>
         </div>
 
         {/* Video Grid */}
@@ -168,18 +197,30 @@ export default function Profile() {
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-0.5 mt-0.5">
-            {videos.map((video) => (
-              <Link
-                key={video.id}
-                href={`/video/${video.id}`}
-                className="aspect-[3/4] bg-zinc-900 relative overflow-hidden"
-              >
-                <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-xs font-semibold drop-shadow-md">
-                  <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current"><path d="M8 5v14l11-7z" /></svg>
-                  {video.view_count}
-                </div>
-              </Link>
+            {videos.map((video: any) => (
+              <div key={video.id} className="aspect-[3/4] bg-zinc-900 relative overflow-hidden group">
+                <Link href={`/video/${video.id}`} className="block w-full h-full">
+                  <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-xs font-semibold drop-shadow-md">
+                    <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current"><path d="M8 5v14l11-7z" /></svg>
+                    {video.view_count}
+                  </div>
+                  {video.pinned && (
+                    <div className="absolute top-1 left-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                      <Pin className="w-3 h-3 text-black" />
+                    </div>
+                  )}
+                </Link>
+                {isOwnProfile && (
+                  <button
+                    onClick={() => togglePin(String(video.id))}
+                    className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full items-center justify-center hidden group-hover:flex transition-all"
+                    title={video.pinned ? "Unpin" : "Pin"}
+                  >
+                    <Pin className={cn("w-3.5 h-3.5", video.pinned ? "text-primary" : "text-white")} />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}

@@ -1,15 +1,21 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useVideos, useFollowingFeed, useLikeVideo } from "@/hooks/use-api";
+import { useVideos, useFollowingFeed, useLikeVideo, useToggleBookmark, useStories } from "@/hooks/use-api";
+import type { StoryGroup } from "@/hooks/use-api";
 import { Link } from "wouter";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Heart, MessageCircle, Share2, Music2,
-  Play, Pause, RefreshCw, VideoOff, Download, Combine, Scissors
+  Play, Pause, RefreshCw, VideoOff, Download, Combine, Scissors,
+  Bookmark, Gauge
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import ShareSheet from "@/components/ShareSheet";
 import BottomNav from "@/components/BottomNav";
+import StoriesBar from "@/components/StoriesBar";
+import StoriesViewer from "@/pages/stories-viewer";
+
+const SPEEDS = [0.5, 1, 1.5, 2];
 
 interface LiveStream {
   username: string;
@@ -98,8 +104,10 @@ function ExitDialog({ onStay, onExit }: { onStay: () => void; onExit: () => void
 export default function Feed() {
   const [activeTab, setActiveTab] = useState<"foryou" | "following">("foryou");
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [storiesGroup, setStoriesGroup] = useState<{ groups: StoryGroup[]; idx: number } | null>(null);
   const exitDialogRef = useRef(false);
   const { currentUser } = useAuth();
+  const { data: storiesData } = useStories();
 
   const forYou = useVideos(1, 10);
   const following = useFollowingFeed(1, 10);
@@ -147,9 +155,29 @@ export default function Feed() {
     </div>
   );
 
+  const storyGroups = storiesData?.story_groups || [];
+
   return (
     <div className="h-[100dvh] w-full bg-black snap-y snap-mandatory overflow-y-scroll scrollbar-hide">
       <LiveBar />
+
+      {/* Stories bar — shown as fixed overlay just below header */}
+      {storyGroups.length > 0 || currentUser ? (
+        <div className="fixed top-11 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent">
+          <StoriesBar
+            onViewStories={(group, idx) => setStoriesGroup({ groups: storyGroups, idx: storyGroups.indexOf(group) })}
+          />
+        </div>
+      ) : null}
+
+      {storiesGroup && (
+        <StoriesViewer
+          groups={storiesGroup.groups}
+          startGroupIndex={storiesGroup.idx}
+          startStoryIndex={0}
+          onClose={() => setStoriesGroup(null)}
+        />
+      )}
 
       <div className="fixed top-0 left-0 right-0 z-30 flex justify-center items-center gap-6 pt-3 pb-2 pointer-events-none">
         <div className="flex gap-6 bg-black/30 backdrop-blur-md rounded-full px-5 py-1.5 pointer-events-auto border border-white/10">
@@ -206,11 +234,20 @@ function VideoCard({ video }: { video: any }) {
   const [iconFading, setIconFading] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [speedIdx, setSpeedIdx] = useState(1);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const iconTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { mutate: likeVideo } = useLikeVideo();
+  const { mutate: toggleBookmark } = useToggleBookmark();
   const { toast } = useToast();
+
+  const cycleSpeed = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = (speedIdx + 1) % SPEEDS.length;
+    setSpeedIdx(next);
+    if (videoRef.current) videoRef.current.playbackRate = SPEEDS[next];
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -378,6 +415,20 @@ function VideoCard({ video }: { video: any }) {
           <span className="text-white text-xs font-semibold drop-shadow-md">Stitch</span>
         </Link>
 
+        <button onClick={(e) => { e.stopPropagation(); toggleBookmark(String(video.id)); }} className="flex flex-col items-center gap-1 group">
+          <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
+            <Bookmark className={cn("w-6 h-6 transition-colors", video.bookmarked_by_user ? "fill-primary text-primary" : "text-white")} />
+          </div>
+          <span className="text-white text-xs font-semibold drop-shadow-md">Saved</span>
+        </button>
+
+        <button onClick={cycleSpeed} className="flex flex-col items-center gap-1 group">
+          <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
+            <Gauge className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-white text-xs font-semibold drop-shadow-md">{SPEEDS[speedIdx]}x</span>
+        </button>
+
         <button onClick={handleDownload} disabled={isDownloading} className="flex flex-col items-center gap-1 group">
           <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
             {isDownloading
@@ -412,10 +463,14 @@ function VideoCard({ video }: { video: any }) {
             ) : word
           )}
         </p>
-        <div className="flex items-center gap-2 text-white/70 text-xs">
-          <Music2 className="w-3 h-3" />
-          <span>Original Audio · {video.author.username}</span>
-        </div>
+        <Link
+          href={`/video/${video.id}`}
+          className="flex items-center gap-2 text-white/70 text-xs pointer-events-auto"
+          onClick={e => e.stopPropagation()}
+        >
+          <Music2 className="w-3 h-3 animate-spin" style={{ animationDuration: "4s" }} />
+          <span className="truncate max-w-[160px]">Original Audio · {video.author.username}</span>
+        </Link>
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 import { useRoute } from "wouter";
-import { useVideo, useComments, useAddComment, useLikeVideo } from "@/hooks/use-api";
+import { useVideo, useComments, useAddComment, useLikeVideo, useToggleBookmark, useLikeComment } from "@/hooks/use-api";
+import type { Comment } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "wouter";
-import { ArrowLeft, Heart, Share2, Send, Loader2, Download, Combine, Scissors } from "lucide-react";
+import { ArrowLeft, Heart, Share2, Send, Loader2, Download, Combine, Scissors, Bookmark, CornerDownRight, ChevronDown, ChevronUp } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ShareSheet from "@/components/ShareSheet";
 import { formatDistanceToNow } from "date-fns";
@@ -17,13 +18,17 @@ export default function VideoView() {
   const { data: commentsData, isLoading: commentsLoading } = useComments(videoId);
   const { mutate: likeVideo } = useLikeVideo();
   const { mutate: addComment, isPending: isAddingComment } = useAddComment();
+  const { mutate: toggleBookmark } = useToggleBookmark();
+  const { mutate: likeComment } = useLikeComment();
   const { currentUser } = useAuth();
   
   const [commentText, setCommentText] = useState("");
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showShare, setShowShare] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const commentInputRef = useRef<HTMLInputElement>(null);
 
   const handleDownload = async () => {
     if (isDownloading) return;
@@ -66,9 +71,14 @@ export default function VideoView() {
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
-    addComment({ videoId, content: commentText.trim() }, {
-      onSuccess: () => setCommentText("")
+    addComment({ videoId, content: commentText.trim(), replyTo: replyTo?.id }, {
+      onSuccess: () => { setCommentText(""); setReplyTo(null); }
     });
+  };
+
+  const handleReply = (comment: Comment) => {
+    setReplyTo(comment);
+    commentInputRef.current?.focus();
   };
 
   if (videoLoading) {
@@ -103,31 +113,25 @@ export default function VideoView() {
           <Link href={`/profile/${video.author.username}`} className="w-12 h-12 rounded-full border-2 border-white overflow-hidden" data-testid="link-profile-mobile">
             <img src={video.author.avatar_url || "https://ui-avatars.com/api/?name="+video.author.username} alt="" className="w-full h-full object-cover" />
           </Link>
-          <button 
-            onClick={() => likeVideo(video.id)}
-            className="flex flex-col items-center gap-1 group"
-            data-testid="button-like-mobile"
-          >
+          <button onClick={() => likeVideo(video.id)} className="flex flex-col items-center gap-1 group" data-testid="button-like-mobile">
             <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center">
               <Heart className={cn("w-6 h-6", video.liked_by_user ? "fill-primary text-primary" : "text-white")} />
             </div>
             <span className="text-white text-xs font-semibold">{video.like_count}</span>
           </button>
-          <Link
-            href={`/duet/${video.id}`}
-            className="flex flex-col items-center gap-1"
-            data-testid="button-duet-mobile"
-          >
+          <button onClick={() => toggleBookmark(String(video.id))} className="flex flex-col items-center gap-1 group">
+            <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center">
+              <Bookmark className={cn("w-6 h-6", video.bookmarked_by_user ? "fill-primary text-primary" : "text-white")} />
+            </div>
+            <span className="text-white text-xs font-semibold">Saved</span>
+          </button>
+          <Link href={`/duet/${video.id}`} className="flex flex-col items-center gap-1" data-testid="button-duet-mobile">
             <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center">
               <Combine className="w-6 h-6 text-white" />
             </div>
             <span className="text-white text-xs font-semibold">Duet</span>
           </Link>
-          <Link
-            href={`/stitch/${video.id}`}
-            className="flex flex-col items-center gap-1"
-            data-testid="button-stitch-mobile"
-          >
+          <Link href={`/stitch/${video.id}`} className="flex flex-col items-center gap-1" data-testid="button-stitch-mobile">
             <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center">
               <Scissors className="w-6 h-6 text-white" />
             </div>
@@ -152,47 +156,26 @@ export default function VideoView() {
             </div>
           </div>
           <div className="hidden md:flex gap-4 items-center">
-            <Link
-              href={`/duet/${video.id}`}
-              className="flex items-center gap-2 text-zinc-300 hover:text-white"
-              data-testid="button-duet"
-            >
+            <Link href={`/duet/${video.id}`} className="flex items-center gap-2 text-zinc-300 hover:text-white" data-testid="button-duet">
               <Combine className="w-5 h-5" />
               <span className="text-sm font-semibold">Duet</span>
             </Link>
-            <Link
-              href={`/stitch/${video.id}`}
-              className="flex items-center gap-2 text-zinc-300 hover:text-white"
-              data-testid="button-stitch"
-            >
+            <Link href={`/stitch/${video.id}`} className="flex items-center gap-2 text-zinc-300 hover:text-white" data-testid="button-stitch">
               <Scissors className="w-5 h-5" />
               <span className="text-sm font-semibold">Stitch</span>
             </Link>
-            <button 
-              onClick={() => likeVideo(video.id)}
-              className="flex items-center gap-2 text-zinc-300 hover:text-white"
-              data-testid="button-like"
-            >
+            <button onClick={() => likeVideo(video.id)} className="flex items-center gap-2 text-zinc-300 hover:text-white" data-testid="button-like">
               <Heart className={cn("w-6 h-6", video.liked_by_user ? "fill-primary text-primary" : "")} />
               <span className="font-semibold">{video.like_count}</span>
             </button>
-            <button
-              className="flex items-center gap-2 text-zinc-300 hover:text-white"
-              data-testid="button-share"
-              onClick={() => setShowShare(true)}
-            >
+            <button onClick={() => toggleBookmark(String(video.id))} className="flex items-center gap-2 text-zinc-300 hover:text-white" title="Save">
+              <Bookmark className={cn("w-5 h-5", video.bookmarked_by_user ? "fill-primary text-primary" : "")} />
+            </button>
+            <button className="flex items-center gap-2 text-zinc-300 hover:text-white" data-testid="button-share" onClick={() => setShowShare(true)}>
               <Share2 className="w-6 h-6" />
             </button>
-            <button
-              className="flex items-center gap-2 text-zinc-300 hover:text-white disabled:opacity-50"
-              data-testid="button-download"
-              onClick={handleDownload}
-              disabled={isDownloading}
-            >
-              {isDownloading
-                ? <div className="w-5 h-5 border-2 border-zinc-300 border-t-transparent rounded-full animate-spin" />
-                : <Download className="w-6 h-6" />
-              }
+            <button className="flex items-center gap-2 text-zinc-300 hover:text-white disabled:opacity-50" data-testid="button-download" onClick={handleDownload} disabled={isDownloading}>
+              {isDownloading ? <div className="w-5 h-5 border-2 border-zinc-300 border-t-transparent rounded-full animate-spin" /> : <Download className="w-6 h-6" />}
             </button>
           </div>
         </div>
@@ -207,14 +190,14 @@ export default function VideoView() {
           {commentsLoading ? (
             <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-zinc-500" /></div>
           ) : commentsData?.comments?.length === 0 ? (
-            <div className="text-center text-zinc-500 py-8 text-sm">No comments yet. Be the first to comment!</div>
+            <div className="text-center text-zinc-500 py-8 text-sm">Koi comment nahi — pehle comment karein!</div>
           ) : (
             commentsData?.comments?.map((comment) => (
               <div key={comment.id} className="flex gap-3">
-                <Link href={`/profile/${comment.author.username}`}>
-                  <img src={comment.author.avatar_url || "https://ui-avatars.com/api/?name="+comment.author.username} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                <Link href={`/profile/${comment.author.username}`} className="flex-shrink-0">
+                  <img src={comment.author.avatar_url || "https://ui-avatars.com/api/?name="+comment.author.username} alt="" className="w-8 h-8 rounded-full object-cover" />
                 </Link>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
                     <Link href={`/profile/${comment.author.username}`} className="font-semibold text-sm hover:underline text-zinc-300">
                       {comment.author.username}
@@ -222,7 +205,24 @@ export default function VideoView() {
                     <span className="text-xs text-zinc-600">{formatDistanceToNow(new Date(comment.created_at))}</span>
                   </div>
                   <p className="text-sm mt-0.5 text-zinc-100 break-words">{comment.content}</p>
+                  <div className="flex items-center gap-4 mt-1.5">
+                    <button onClick={() => likeComment(String(comment.id))} className="flex items-center gap-1 text-zinc-500 hover:text-red-400 transition-colors">
+                      <Heart className={cn("w-3.5 h-3.5", comment.liked_by_user ? "fill-red-500 text-red-500" : "")} />
+                      {comment.like_count > 0 && <span className="text-xs">{comment.like_count}</span>}
+                    </button>
+                    {currentUser && (
+                      <button onClick={() => handleReply(comment)} className="flex items-center gap-1 text-zinc-500 hover:text-primary transition-colors text-xs font-medium">
+                        <CornerDownRight className="w-3 h-3" /> Reply
+                      </button>
+                    )}
+                    {comment.reply_count > 0 && (
+                      <span className="text-xs text-zinc-600">{comment.reply_count} {comment.reply_count === 1 ? "reply" : "replies"}</span>
+                    )}
+                  </div>
                 </div>
+                <button onClick={() => likeComment(String(comment.id))} className={cn("flex-shrink-0 mt-1", comment.liked_by_user ? "text-red-500" : "text-zinc-600 hover:text-red-400")}>
+                  <Heart className={cn("w-4 h-4", comment.liked_by_user ? "fill-current" : "")} />
+                </button>
               </div>
             ))
           )}
@@ -230,13 +230,21 @@ export default function VideoView() {
 
         {/* Add Comment */}
         <div className="p-4 border-t border-zinc-900 bg-zinc-950">
+          {replyTo && (
+            <div className="flex items-center gap-2 mb-2 bg-zinc-900 rounded-lg px-3 py-1.5">
+              <CornerDownRight className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+              <span className="text-xs text-zinc-400 flex-1 truncate">@{replyTo.author.username}: {replyTo.content}</span>
+              <button onClick={() => setReplyTo(null)} className="text-zinc-600 hover:text-white text-xs">✕</button>
+            </div>
+          )}
           {currentUser ? (
             <form onSubmit={handleAddComment} className="flex items-center gap-3">
-              <img src={currentUser.avatar_url || "https://ui-avatars.com/api/?name="+currentUser.username} alt="" className="w-8 h-8 rounded-full object-cover hidden sm:block" />
+              <img src={currentUser.avatar_url || "https://ui-avatars.com/api/?name="+currentUser.username} alt="" className="w-8 h-8 rounded-full object-cover hidden sm:block flex-shrink-0" />
               <Input
+                ref={commentInputRef}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Add a comment..."
+                placeholder={replyTo ? `@${replyTo.author.username} ko reply karein...` : "Comment likhein..."}
                 className="bg-zinc-900 border-zinc-800 text-white rounded-full flex-1 focus-visible:ring-primary"
                 data-testid="input-comment"
               />
@@ -246,7 +254,7 @@ export default function VideoView() {
             </form>
           ) : (
             <div className="text-center py-2 text-sm text-zinc-400">
-              Please <Link href="/login" className="text-primary hover:underline font-semibold">log in</Link> to comment
+              <Link href="/login" className="text-primary hover:underline font-semibold">Login karein</Link> comment karne ke liye
             </div>
           )}
         </div>

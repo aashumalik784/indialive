@@ -21,6 +21,7 @@ export default function Upload() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
+  const [privacy, setPrivacy] = useState<"public" | "private" | "followers">("public");
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadDone, setUploadDone] = useState(false);
@@ -62,6 +63,7 @@ export default function Upload() {
     const formData = new FormData();
     formData.append("video", file);
     formData.append("caption", caption);
+    formData.append("privacy", privacy);
 
     const xhr = new XMLHttpRequest();
     const baseUrl = import.meta.env.VITE_API_URL || "";
@@ -250,6 +252,28 @@ export default function Upload() {
                   <Sparkles className="w-3 h-3" /> Hashtags add karein
                 </span>
                 <span className="text-xs text-zinc-600">{caption.length}/500</span>
+              </div>
+            </div>
+
+            {/* Privacy selector */}
+            <div className="mt-3">
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-2">Privacy</label>
+              <div className="flex gap-2">
+                {(["public", "followers", "private"] as const).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPrivacy(p)}
+                    disabled={isUploading}
+                    className={cn(
+                      "flex-1 py-2 rounded-xl text-xs font-bold border transition-all",
+                      privacy === p
+                        ? "bg-primary/20 border-primary text-primary"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-400"
+                    )}
+                  >
+                    {p === "public" ? "🌍 Public" : p === "followers" ? "👥 Followers" : "🔒 Private"}
+                  </button>
+                ))}
               </div>
             </div>
 

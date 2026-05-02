@@ -20,6 +20,11 @@ import HashtagPage from "@/pages/hashtag";
 import AccountPage from "@/pages/account";
 import DuetPage from "@/pages/duet";
 import StitchPage from "@/pages/stitch";
+import BookmarksPage from "@/pages/bookmarks";
+import MessagesPage from "@/pages/messages";
+import ConversationPage from "@/pages/conversation";
+import AnalyticsPage from "@/pages/analytics";
+import StoriesCreate from "@/pages/stories-create";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +52,11 @@ function Router() {
       <Route path="/account" component={AccountPage} />
       <Route path="/duet/:videoId" component={DuetPage} />
       <Route path="/stitch/:videoId" component={StitchPage} />
+      <Route path="/bookmarks" component={BookmarksPage} />
+      <Route path="/messages" component={MessagesPage} />
+      <Route path="/conversation/:userId" component={ConversationPage} />
+      <Route path="/analytics" component={AnalyticsPage} />
+      <Route path="/stories/create" component={StoriesCreate} />
       <Route component={NotFound} />
     </Switch>
   );

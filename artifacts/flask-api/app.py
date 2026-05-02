@@ -13,6 +13,10 @@ from routes.search import search_bp
 from routes.live import live_bp
 from routes.follow import follow_bp
 from routes.notifications import notifications_bp
+from routes.stories import stories_bp
+from routes.bookmarks import bookmarks_bp
+from routes.messages import messages_bp
+from routes.social import social_bp
 
 
 def create_app():
@@ -31,6 +35,10 @@ def create_app():
     app.register_blueprint(live_bp)
     app.register_blueprint(follow_bp)
     app.register_blueprint(notifications_bp)
+    app.register_blueprint(stories_bp)
+    app.register_blueprint(bookmarks_bp)
+    app.register_blueprint(messages_bp)
+    app.register_blueprint(social_bp)
 
     socketio.init_app(app)
 

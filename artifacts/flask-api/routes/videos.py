@@ -48,7 +48,7 @@ def get_videos():
     per_page = request.args.get("per_page", 10, type=int)
     current_user = get_current_user()
 
-    pagination = Video.query.order_by(Video.created_at.desc()).paginate(
+    pagination = Video.query.filter_by(privacy="public").order_by(Video.created_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
 
@@ -144,6 +144,11 @@ def upload_video():
         duet_of_int = int(duet_of_id) if duet_of_id and duet_of_id.isdigit() else None
         stitch_of_id = request.form.get("stitch_of")
         stitch_of_int = int(stitch_of_id) if stitch_of_id and stitch_of_id.isdigit() else None
+        sound_of_id = request.form.get("sound_of")
+        sound_of_int = int(sound_of_id) if sound_of_id and sound_of_id.isdigit() else None
+        privacy = request.form.get("privacy", "public")
+        if privacy not in ("public", "private", "followers"):
+            privacy = "public"
         video = Video(
             user_id=current_user.id,
             caption=caption,
@@ -153,6 +158,8 @@ def upload_video():
             duration=duration,
             duet_of=duet_of_int,
             stitch_of=stitch_of_int,
+            sound_of=sound_of_int,
+            privacy=privacy,
         )
         db.session.add(video)
         db.session.commit()
