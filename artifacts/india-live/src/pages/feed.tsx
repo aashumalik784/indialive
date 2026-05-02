@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Heart, MessageCircle, Share2, Music2,
   Play, Pause, Search, User2, Home,
-  Volume2, VolumeX, RefreshCw, VideoOff, Radio
+  RefreshCw, VideoOff, Radio
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -159,7 +159,6 @@ export default function Feed() {
 
 function VideoCard({ video }: { video: any }) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
   const [showHeart, setShowHeart] = useState(false);
   const [showPlayIcon, setShowPlayIcon] = useState(false);
   const [iconFading, setIconFading] = useState(false);
@@ -171,9 +170,6 @@ function VideoCard({ video }: { video: any }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = true;
-    }
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -212,14 +208,6 @@ function VideoCard({ video }: { video: any }) {
         setIsPlaying(true);
       }
       showIconBriefly();
-    }
-  };
-
-  const handleToggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
     }
   };
 
@@ -271,17 +259,6 @@ function VideoCard({ video }: { video: any }) {
           </div>
         </div>
       )}
-
-      {/* Mute/Unmute — top right */}
-      <button
-        onClick={handleToggleMute}
-        className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center"
-      >
-        {isMuted
-          ? <VolumeX className="w-5 h-5 text-white" />
-          : <Volume2 className="w-5 h-5 text-white" />
-        }
-      </button>
 
       {/* Right side actions */}
       <div className="absolute right-3 bottom-24 flex flex-col gap-5 items-center z-10">
