@@ -8,6 +8,7 @@ from routes.auth import auth_bp
 from routes.videos import videos_bp
 from routes.engagement import engagement_bp
 from routes.users import users_bp
+from routes.search import search_bp
 
 
 def create_app():
@@ -22,6 +23,7 @@ def create_app():
     app.register_blueprint(videos_bp)
     app.register_blueprint(engagement_bp)
     app.register_blueprint(users_bp)
+    app.register_blueprint(search_bp)
 
     @app.route("/api/healthz")
     def healthz():

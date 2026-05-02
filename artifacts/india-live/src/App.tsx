@@ -11,6 +11,7 @@ import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Profile from "@/pages/profile";
 import VideoView from "@/pages/video-view";
+import SearchPage from "@/pages/search";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,6 +25,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Feed} />
+      <Route path="/search" component={SearchPage} />
       <Route path="/upload" component={Upload} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
