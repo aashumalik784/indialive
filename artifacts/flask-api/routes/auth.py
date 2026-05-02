@@ -1,3 +1,4 @@
+from datetime import timedelta
 from flask import Blueprint, request, jsonify, session
 from models import db, User
 
@@ -31,6 +32,7 @@ def signup():
     db.session.add(user)
     db.session.commit()
 
+    session.permanent = True
     session["user_id"] = user.id
     return jsonify({"user": user.to_dict()}), 201
 
@@ -48,13 +50,14 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid credentials"}), 401
 
+    session.permanent = True
     session["user_id"] = user.id
     return jsonify({"user": user.to_dict()}), 200
 
 
 @auth_bp.route("/api/auth/logout", methods=["POST"])
 def logout():
-    session.pop("user_id", None)
+    session.clear()
     return jsonify({"message": "Logged out"}), 200
 
 
@@ -66,7 +69,8 @@ def me():
 
     user = User.query.get(user_id)
     if not user:
-        session.pop("user_id", None)
+        session.clear()
         return jsonify({"user": None}), 200
 
+    session.permanent = True
     return jsonify({"user": user.to_dict()}), 200

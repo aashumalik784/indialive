@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -22,6 +23,7 @@ class Config:
 
     MAX_CONTENT_LENGTH = 500 * 1024 * 1024
 
+    PERMANENT_SESSION_LIFETIME = timedelta(days=30)
     SESSION_COOKIE_SAMESITE = "None"
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True

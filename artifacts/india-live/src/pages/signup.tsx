@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -34,11 +34,21 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen w-full bg-black flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md absolute top-8 left-8">
+      <div className="w-full max-w-md flex items-center justify-between mb-6">
+        <button
+          onClick={() => setLocation("/")}
+          className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
+          data-testid="button-back"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="text-sm">Back</span>
+        </button>
         <Link href="/" className="text-primary font-bold text-xl tracking-tighter" data-testid="link-home">
           INDIA<span className="text-secondary">LIVE</span>
         </Link>
+        <div className="w-16" />
       </div>
+
       <Card className="w-full max-w-md bg-zinc-950 border-zinc-800">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-white">Create an account</CardTitle>
@@ -85,9 +95,9 @@ export default function Signup() {
                 placeholder="••••••••"
               />
             </div>
-            <Button 
-              type="submit" 
-              className="w-full bg-primary text-black hover:bg-primary/90 font-bold" 
+            <Button
+              type="submit"
+              className="w-full bg-primary text-black hover:bg-primary/90 font-bold"
               disabled={isLoading}
               data-testid="button-submit"
             >

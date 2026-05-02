@@ -39,11 +39,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await apiRequest("/api/auth/me");
         const data = await res.json();
-        setCurrentUser(data.user);
-        setCachedUser(data.user);
+        if (data.user) {
+          setCurrentUser(data.user);
+          setCachedUser(data.user);
+        } else {
+          const cached = getCachedUser();
+          if (!cached) {
+            setCurrentUser(null);
+          }
+        }
       } catch {
-        setCurrentUser(null);
-        setCachedUser(null);
+        // Network error — keep cached user so they stay "logged in" visually
       } finally {
         setIsLoading(false);
       }
@@ -74,7 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await apiRequest("/api/auth/logout", { method: "POST" });
+    try {
+      await apiRequest("/api/auth/logout", { method: "POST" });
+    } catch {}
     setCurrentUser(null);
     setCachedUser(null);
   };
