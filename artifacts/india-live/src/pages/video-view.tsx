@@ -2,7 +2,7 @@ import { useRoute } from "wouter";
 import { useVideo, useComments, useAddComment, useLikeVideo } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "wouter";
-import { ArrowLeft, Heart, Share2, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Heart, Share2, Send, Loader2, Download } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ShareSheet from "@/components/ShareSheet";
 import { formatDistanceToNow } from "date-fns";
@@ -22,7 +22,28 @@ export default function VideoView() {
   const [commentText, setCommentText] = useState("");
   const [isPlaying, setIsPlaying] = useState(true);
   const [showShare, setShowShare] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handleDownload = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    try {
+      const res = await fetch(video.video_url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `indialive_${video.author.username}_${video.id}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   useEffect(() => {
     if (videoRef.current) {
@@ -125,6 +146,17 @@ export default function VideoView() {
               onClick={() => setShowShare(true)}
             >
               <Share2 className="w-6 h-6" />
+            </button>
+            <button
+              className="flex items-center gap-2 text-zinc-300 hover:text-white disabled:opacity-50"
+              data-testid="button-download"
+              onClick={handleDownload}
+              disabled={isDownloading}
+            >
+              {isDownloading
+                ? <div className="w-5 h-5 border-2 border-zinc-300 border-t-transparent rounded-full animate-spin" />
+                : <Download className="w-6 h-6" />
+              }
             </button>
           </div>
         </div>

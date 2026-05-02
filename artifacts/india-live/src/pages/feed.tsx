@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Heart, MessageCircle, Share2, Music2,
   Play, Pause, Search, User2, Home,
-  RefreshCw, VideoOff, Radio
+  RefreshCw, VideoOff, Radio, Download
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -222,6 +222,32 @@ function VideoCard({ video }: { video: any }) {
 
   const shareUrl = `${window.location.origin}/video/${video.id}`;
 
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isDownloading) return;
+    setIsDownloading(true);
+    toast({ title: "Download shuru ho raha hai..." });
+    try {
+      const res = await fetch(video.video_url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `indialive_${video.author.username}_${video.id}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      toast({ title: "Video save ho gaya!" });
+    } catch {
+      toast({ title: "Download nahi ho saka", description: "Dobara try karein", variant: "destructive" });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div
       ref={containerRef}
@@ -291,6 +317,16 @@ function VideoCard({ video }: { video: any }) {
             <Share2 className="w-6 h-6 text-white" />
           </div>
           <span className="text-white text-xs font-semibold drop-shadow-md">Share</span>
+        </button>
+
+        <button onClick={handleDownload} disabled={isDownloading} className="flex flex-col items-center gap-1 group">
+          <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
+            {isDownloading
+              ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : <Download className="w-6 h-6 text-white" />
+            }
+          </div>
+          <span className="text-white text-xs font-semibold drop-shadow-md">Save</span>
         </button>
       </div>
 
