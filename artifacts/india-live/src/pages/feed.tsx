@@ -2,22 +2,51 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useVideos, useLikeVideo } from "@/hooks/use-api";
 import { Link } from "wouter";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Heart, MessageCircle, Share2, Music2, Play, Pause, Search, User2, Home } from "lucide-react";
+import {
+  Heart, MessageCircle, Share2, Music2,
+  Play, Pause, Search, User2, Home,
+  Volume2, VolumeX, RefreshCw, VideoOff
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Feed() {
-  const { data, isLoading } = useVideos(1, 10);
-  
+  const { data, isLoading, isError, refetch } = useVideos(1, 10);
+
   if (isLoading) return (
     <div className="h-screen w-full bg-black flex items-center justify-center">
       <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
     </div>
   );
 
+  if (isError) return (
+    <div className="h-screen w-full bg-black flex flex-col items-center justify-center gap-4 text-white">
+      <RefreshCw className="w-10 h-10 text-zinc-600" />
+      <p className="text-zinc-400">Videos load nahi ho sakin</p>
+      <button
+        onClick={() => refetch()}
+        className="px-6 py-2 bg-primary text-black font-bold rounded-full text-sm"
+      >
+        Dobara Try Karein
+      </button>
+    </div>
+  );
+
+  if (!data?.videos || data.videos.length === 0) return (
+    <div className="h-screen w-full bg-black flex flex-col items-center justify-center gap-4 text-white pb-16">
+      <VideoOff className="w-12 h-12 text-zinc-700" />
+      <p className="text-zinc-500 font-semibold">Abhi koi video nahi hai</p>
+      <p className="text-zinc-700 text-sm">Pehle video upload karein!</p>
+      <Link href="/upload" className="px-6 py-2 bg-primary text-black font-bold rounded-full text-sm mt-2">
+        Video Upload Karein
+      </Link>
+      <BottomNav />
+    </div>
+  );
+
   return (
     <div className="h-[100dvh] w-full bg-black snap-y snap-mandatory overflow-y-scroll scrollbar-hide">
-      {data?.videos.map((video) => (
+      {data.videos.map((video) => (
         <VideoCard key={video.id} video={video} />
       ))}
       <BottomNav />
@@ -27,6 +56,7 @@ export default function Feed() {
 
 function VideoCard({ video }: { video: any }) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [showHeart, setShowHeart] = useState(false);
   const [showPlayIcon, setShowPlayIcon] = useState(false);
   const [iconFading, setIconFading] = useState(false);
@@ -51,7 +81,6 @@ function VideoCard({ video }: { video: any }) {
       },
       { threshold: 0.5 }
     );
-
     if (containerRef.current) observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, []);
@@ -79,6 +108,14 @@ function VideoCard({ video }: { video: any }) {
     }
   };
 
+  const handleToggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+
   const handleDoubleTap = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!video.liked_by_user) {
@@ -95,13 +132,13 @@ function VideoCard({ video }: { video: any }) {
         await navigator.share({ title: video.caption, url });
       } else {
         await navigator.clipboard.writeText(url);
-        toast({ title: "Link copied!", description: "Video link copied to clipboard" });
+        toast({ title: "Link copy ho gaya!", description: "Share karein jahan chahein" });
       }
     } catch {}
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="h-[100dvh] w-full snap-start relative bg-black flex items-center justify-center overflow-hidden"
     >
@@ -116,22 +153,20 @@ function VideoCard({ video }: { video: any }) {
         onClick={handleTogglePlay}
         onDoubleClick={handleDoubleTap}
       />
-      
-      {/* Double-tap heart animation */}
+
+      {/* Double-tap heart */}
       {showHeart && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-ping pointer-events-none">
-          <Heart className="w-24 h-24 text-primary fill-primary" />
+          <Heart className="w-24 h-24 text-red-500 fill-red-500" />
         </div>
       )}
 
-      {/* Play/Pause icon overlay */}
+      {/* Play/Pause overlay */}
       {showPlayIcon && (
-        <div
-          className={cn(
-            "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300",
-            iconFading ? "opacity-0" : "opacity-100"
-          )}
-        >
+        <div className={cn(
+          "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300",
+          iconFading ? "opacity-0" : "opacity-100"
+        )}>
           <div className="w-20 h-20 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
             {isPlaying
               ? <Pause className="w-10 h-10 text-white fill-white" />
@@ -141,9 +176,19 @@ function VideoCard({ video }: { video: any }) {
         </div>
       )}
 
-      {/* Right side action buttons */}
+      {/* Mute/Unmute button — top right */}
+      <button
+        onClick={handleToggleMute}
+        className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center"
+      >
+        {isMuted
+          ? <VolumeX className="w-5 h-5 text-white" />
+          : <Volume2 className="w-5 h-5 text-white" />
+        }
+      </button>
+
+      {/* Right side actions */}
       <div className="absolute right-3 bottom-24 flex flex-col gap-5 items-center z-10">
-        {/* Creator avatar */}
         <Link href={`/profile/${video.author.username}`} className="flex flex-col items-center gap-1">
           <div className="w-12 h-12 rounded-full border-2 border-primary overflow-hidden">
             <img
@@ -154,23 +199,19 @@ function VideoCard({ video }: { video: any }) {
           </div>
         </Link>
 
-        {/* Like button */}
-        <button 
+        <button
           onClick={() => likeVideo(String(video.id))}
           className="flex flex-col items-center gap-1 group"
         >
           <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
-            <Heart
-              className={cn(
-                "w-7 h-7 transition-colors",
-                video.liked_by_user ? "fill-red-500 text-red-500" : "text-white"
-              )}
-            />
+            <Heart className={cn(
+              "w-7 h-7 transition-colors",
+              video.liked_by_user ? "fill-red-500 text-red-500" : "text-white"
+            )} />
           </div>
           <span className="text-white text-xs font-semibold drop-shadow-md">{video.like_count}</span>
         </button>
 
-        {/* Comments button */}
         <Link href={`/video/${video.id}`} className="flex flex-col items-center gap-1 group">
           <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
             <MessageCircle className="w-7 h-7 text-white" />
@@ -178,7 +219,6 @@ function VideoCard({ video }: { video: any }) {
           <span className="text-white text-xs font-semibold drop-shadow-md">{video.comment_count}</span>
         </Link>
 
-        {/* Share button */}
         <button onClick={handleShare} className="flex flex-col items-center gap-1 group">
           <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center group-active:scale-90 transition-transform">
             <Share2 className="w-6 h-6 text-white" />
@@ -187,7 +227,7 @@ function VideoCard({ video }: { video: any }) {
         </button>
       </div>
 
-      {/* Bottom info overlay */}
+      {/* Bottom info */}
       <div className="absolute bottom-0 left-0 w-full p-4 pb-20 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-0">
         <Link
           href={`/profile/${video.author.username}`}
